@@ -1,0 +1,1 @@
+GIT_SSH_COMMAND="ssh -i /home/emil/.ssh/id_ed25519" git clone git@github.com:Emelix123/Wettkampfsoftware.git
