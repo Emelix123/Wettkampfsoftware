@@ -1,0 +1,224 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.einstellungen, .ansicht-filter, .teilnehmer-tabelle-bereich {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box; /* Wichtig für padding und width 100% */
+}
+
+.btn {
+    display: inline-block;
+    background: #5cb85c;
+    color: #fff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background: #6c757d;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #f9f9f9;
+}
+
+.filter-bereich {
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    margin-top: 10px;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close-button {
+
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* dateneingabe.css */
+
+/* Stile für die spezifischen Bereiche der Dateneingabe */
+.einstellungen h2, .ansicht-filter h2, .teilnehmer-tabelle-bereich h2 {
+    color: #0056b3; /* Etwas dunkleres Blau für Bereichs-Überschriften */
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 1em;
+}
+
+.ansicht-filter .filter-bereich {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+.ansicht-filter .filter-bereich input[type="text"],
+.ansicht-filter .filter-bereich button {
+    margin-top: 5px; /* Kleiner Abstand */
+}
+
+#teilnehmerTabelle th {
+    /* Spezifische Header-Farbe für diese Tabelle, falls gewünscht */
+    background-color: #e2e6ea;
+}
+
+#teilnehmerTabelle .ergebnis-erfasst-ja {
+    color: green;
+    font-weight: bold;
+}
+#teilnehmerTabelle .ergebnis-erfasst-nein {
+    color: #6c757d; /* Grau */
+}
+
+
+/* Modal Styles für Wertungseingabe (aus der vorherigen style.css übernommen) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1050; /* Über anderen Elementen */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5); /* Halbtransparenter Hintergrund */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto; /* Zentriert und Abstand von oben */
+    padding: 25px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 600px; /* Maximale Breite des Modals */
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative; /* Für den Close-Button */
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #0056b3;
+}
+
+.close-button {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#wertungsVariablenContainer .form-group {
+    display: flex; /* Für Label und Input nebeneinander mit etwas mehr Kontrolle */
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+#wertungsVariablenContainer .form-group label {
+    flex-basis: 30%; /* Breite des Labels */
+    margin-bottom: 0; /* Bereits im Flex-Container */
+}
+#wertungsVariablenContainer .form-group input {
+    flex-basis: 70%; /* Breite des Inputs */
+}
+
+/* Für Drag&Drop Highlighting (Beispiel) */
+.blue-background-class {
+    background-color: #cfe2ff !important; /* Heller Blauton beim Ziehen */
+}

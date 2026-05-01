@@ -1,0 +1,442 @@
+/* general.css */
+
+/* --- Reset/Normalisierung (einfach) --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    background-color: #f8f9fa; /* Heller Hintergrund für die gesamte Seite */
+    color: #343a40; /* Dunkle Textfarbe für guten Kontrast */
+    padding: 20px; /* Etwas Abstand zum Fensterrand */
+}
+
+.container {
+    max-width: 1200px; /* Maximale Breite für den Hauptinhalt */
+    margin: 20px auto; /* Zentriert den Container und gibt oben/unten Abstand */
+    padding: 25px;
+    background-color: #ffffff; /* Weißer Hintergrund für den Inhaltsbereich */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Dezenter Schatten */
+}
+
+/* --- Überschriften --- */
+h1, h2, h3, h4, h5, h6 {
+    color: #0056b3; /* Blaue Akzentfarbe für Überschriften */
+    margin-bottom: 0.75em;
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 2.2em;
+    border-bottom: 2px solid #e9ecef; /* Leichte Trennlinie unter H1 */
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+}
+
+h2 {
+    font-size: 1.8em;
+    margin-top: 1.5em; /* Mehr Abstand vor H2 für Struktur */
+}
+
+h3 {
+    font-size: 1.4em;
+}
+
+/* --- Absätze und Text --- */
+p {
+    margin-bottom: 1em;
+}
+
+a {
+    color: #007bff; /* Standard Bootstrap Link-Blau */
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* --- Formularelemente (Grundlegend) --- */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+select.form-control {
+    /* Spezifische Stile für Select, falls nötig, oft vom Browser vorgegeben */
+    appearance: none; /* Entfernt Standard-Pfeil in einigen Browsern, dann eigenen Pfeil hinzufügen */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007bff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: .65em auto;
+    padding-right: 2.25rem; /* Platz für den Pfeil */
+}
+
+.form-control[disabled] {
+    background-color: #e9ecef;
+    opacity: 0.7;
+}
+
+/* --- Buttons (Grundlegend) --- */
+.btn {
+    display: inline-block;
+    font-weight: 500;
+    color: #fff;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: #007bff;
+    border: 1px solid #007bff;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+.btn:focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(38, 143, 255, 0.5);
+}
+
+.btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+}
+
+
+/* --- Tabellen (Grundlegend) --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+    background-color: #fff; /* Wichtig, falls Body-Hintergrund durchscheint */
+}
+
+th, td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border: 1px solid #dee2e6; /* Einheitliche Border für Zellen */
+    text-align: left;
+}
+
+thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6; /* Dickere Border unter dem Header */
+    background-color: #e9ecef; /* Leichter Hintergrund für den Tabellenkopf */
+    font-weight: 600;
+}
+tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.075); /* Leichter Hover-Effekt */
+}
+
+/* --- Utility Klassen --- */
+.hidden {
+    display: none !important;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+.success-message {
+    color: #28a745;
+    font-size: 0.875em;
+    margin-top: 0.25rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-1 { margin-top: 0.25rem !important; }
+.mt-2 { margin-top: 0.5rem !important; }
+.mt-3 { margin-top: 1rem !important; }
+.mb-1 { margin-bottom: 0.25rem !important; }
+.mb-2 { margin-bottom: 0.5rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+
+/* --- Navigationsleiste (Beispiel, falls benötigt) --- */
+.navbar {
+    background-color: #0056b3;
+    padding: 1rem;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.navbar ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: center; /* Oder left/right */
+}
+
+.navbar ul li {
+    margin: 0 15px;
+}
+
+.navbar ul li a {
+    color: white;
+    font-weight: 500;
+    font-size: 1.1em;
+}
+
+.navbar ul li a:hover {
+    text-decoration: underline;
+    color: #e9ecef;
+}
+
+/* --- Footer (Beispiel, falls benötigt) --- */
+.footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    font-size: 0.9em;
+    color: #6c757d;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Ergänzung für general.css */
+#globalNotificationArea {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.global-notification {
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: #fff;
+    min-width: 250px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.global-notification-info {
+    background-color: #17a2b8; /* Bootstrap Info */
+}
+
+.global-notification-success {
+    background-color: #28a745; /* Bootstrap Success */
+}
+
+.global-notification-error {
+    background-color: #dc3545; /* Bootstrap Danger */
+}
+
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Sorgt dafür, dass der Footer am unteren Rand bleibt */
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+.header-content {
+    display: flex; /* Aktiviert Flexbox für den Header-Inhalt */
+    justify-content: space-between; /* Verteilt die Elemente am Anfang und Ende */
+    align-items: center; /* Zentriert die Elemente vertikal */
+    max-width: 1200px; /* Optional: Maximale Breite für den Inhalt */
+    margin: 0 auto; /* Zentriert den Inhalt */
+    padding: 0 20px; /* Innenabstand an den Seiten */
+}
+
+header h1 {
+    margin: 0;
+    flex-shrink: 0; /* Verhindert, dass der Titel schrumpft */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex; /* Aktiviert Flexbox für Navigationslisten */
+}
+
+nav li {
+    margin: 0 15px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    padding: 5px 0;
+    transition: color 0.3s ease;
+    white-space: nowrap; /* Verhindert Zeilenumbruch bei Nav-Links */
+}
+
+nav a:hover {
+    color: #ffd700; /* Goldgelb für Hover-Effekt */
+}
+
+.main-nav {
+    margin-left: auto; /* Schiebt die Hauptnavigation nach rechts (zwischen h1 und auth-nav) */
+    margin-right: 20px; /* Abstand zum Admincenter/Auth-Buttons */
+}
+
+.auth-nav ul li {
+    margin-left: 15px; /* Abstand zwischen Admincenter und den Buttons */
+}
+
+.auth-nav .button {
+    background-color: #007bff; /* Beispiel-Farbe für Buttons */
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.auth-nav .button:hover {
+    background-color: #0056b3;
+    color: white; /* Stellt sicher, dass die Textfarbe weiß bleibt beim Hover */
+}
+
+
+main {
+    flex-grow: 1; /* Sorgt dafür, dass der Hauptinhalt den verfügbaren Platz einnimmt */
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+    margin-top: auto; /* Schiebt den Footer ganz nach unten */
+}
+
+footer p {
+    margin: 5px 0;
+}
+
+footer a {
+    color: white;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Anpassungen für kleinere Bildschirme */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column; /* Stapelt Elemente vertikal */
+        align-items: flex-start; /* Elemente linksbündig */
+        padding: 10px;
+    }
+
+    header h1 {
+        margin-bottom: 10px;
+    }
+
+    .main-nav, .auth-nav {
+        width: 100%; /* Nehmen die volle Breite ein */
+        margin: 0; /* Entfernt die Ränder */
+    }
+
+    nav ul {
+        flex-direction: column; /* Nav-Links untereinander */
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    nav li {
+        margin: 5px 0; /* Vertikaler Abstand */
+    }
+
+    .auth-nav ul {
+        flex-direction: row; /* Buttons bleiben nebeneinander */
+        justify-content: flex-start;
+        flex-wrap: wrap; /* Erlaubt Umbruch bei Platzmangel */
+    }
+     .auth-nav ul li {
+        margin-left: 0;
+        margin-right: 15px; /* Abstand zwischen Buttons */
+    }
+
+    .auth-nav .button {
+        margin-bottom: 5px; /* Etwas Abstand unter den Buttons auf kleinen Screens */
+    }
+}

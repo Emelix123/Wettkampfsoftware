@@ -1,0 +1,124 @@
+.filter-bereich {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.filter-bereich h2 {
+    margin-top: 0;
+}
+
+.filter-bereich div {
+    margin-bottom: 10px;
+}
+
+.filter-bereich label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.filter-bereich select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.filter-bereich button[type="submit"] {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.filter-bereich button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+.anzeige-bereich h2 {
+    margin-top: 20px;
+}
+
+#wettkampfDetails {
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+
+.ergebnis-uebersicht {
+    /* Spezifisches Layout für eine Übersichtsbox */
+    background-color: #f0f8ff; /* AliceBlue für einen sanften Hintergrund */
+    padding: 20px;
+    border-radius: 5px;
+    border-left: 5px solid #007bff;
+    margin-bottom: 20px;
+}
+
+.rangliste-tabelle th {
+    background-color: #d1ecf1; /* Hellblau für Ranglisten-Header */
+    color: #0c5460;
+}
+
+.rangliste-tabelle .platz-1 {
+    font-weight: bold;
+    color: #d3a40a; /* Goldähnliche Farbe */
+    background-color: #fff3cd;
+}
+.rangliste-tabelle .platz-2 {
+    font-weight: bold;
+    color: #808080; /* Silberähnliche Farbe */
+    background-color: #e2e3e5;
+}
+.rangliste-tabelle .platz-3 {
+    font-weight: bold;
+    color: #CD7F32; /* Bronzeähnliche Farbe */
+    background-color: #f8f0e3;
+}
+
+
+.filter-bereich-ansicht {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.filter-bereich-ansicht .form-group {
+    display: inline-block; /* Filter nebeneinander */
+    margin-right: 15px;
+    min-width: 200px; /* Mindestbreite für Selects */
+}
+
+.detail-ansicht-person {
+    /* Stile für eine Detailansicht einer Person */
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.detail-ansicht-person img.profilbild { /* Falls Profilbilder verwendet werden */
+    max-width: 100px;
+    border-radius: 50%;
+    float: left;
+    margin-right: 15px;
+}
+
+/* Platzhalter für Diagramm-Styling, falls Diagramme genutzt werden */
+.diagramm-container {
+    width: 100%;
+    height: 400px; /* Beispielhöhe */
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-top: 20px;
+    background-color: #fff;
+}

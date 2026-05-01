@@ -1,0 +1,79 @@
+/* massenimport.css */
+
+.datei-upload-bereich input[type="file"] {
+    /* Spezifisches Styling für das Datei-Input-Feld, falls gewünscht */
+    /* Oft schwer browserübergreifend einheitlich zu stylen ohne JS-Tricks */
+    padding: 10px;
+    border: 2px dashed #007bff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#vorschauBereich {
+    margin-top: 25px;
+    padding: 20px;
+    background-color: #fdfdff;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+}
+
+#vorschauBereich h2 {
+    color: #28a745; /* Grüne Akzentfarbe */
+}
+
+#vorschauTabelle th.status-header,
+#vorschauTabelle td.status-ok,
+#vorschauTabelle td.status-fehler {
+    font-weight: bold;
+}
+
+#vorschauTabelle td.status-ok {
+    color: #155724; /* Dunkelgrün */
+    background-color: #d4edda; /* Hellgrün */
+}
+
+#vorschauTabelle td.status-fehler {
+    color: #721c24; /* Dunkelrot */
+    background-color: #f8d7da; /* Hellrot */
+}
+
+#vorschauTabelle td.status-fehler:hover {
+    cursor: help; /* Zeigt an, dass es einen Tooltip gibt */
+}
+
+
+#validierungsInfo {
+    font-style: italic;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    display: block; /* Damit es die volle Breite einnimmt */
+}
+
+#importErgebnisBereich {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+#importErgebnisBereich h3 {
+    margin-top: 0;
+}
+
+#importErgebnisBereich .error { /* Wiederverwendung von .error-message falls vorhanden */
+    color: #dc3545;
+    font-weight: bold;
+}
+#importErgebnisBereich .success {
+    color: #28a745;
+    font-weight: bold;
+}
+
+#importErgebnisBereich ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+#importErgebnisBereich ul li {
+    margin-bottom: 5px;
+}

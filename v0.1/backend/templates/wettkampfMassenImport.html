@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettkampf Massen Import</title>
+    <link rel="stylesheet" href="/css/wettkampfManagerStyle">
+    <link rel="stylesheet" href="/css/wettkampfMassenImport">
+
+<body>
+    <header>
+        <div id="header-placeholder"></div>
+        <h1>Wettkampf Massen Import</h1>
+    </header>
+    <main>
+
+        <div class="container">
+            <a href="/media/excel_Vorlage" download>
+                <button class="btn">Excel Vorlage herunterladen</button>
+            </a>
+            <div class="einstellungen">
+                <h2>1. Zielwettkampf auswählen</h2>
+                <div class="form-group">
+                    <label for="wettkampfTagImportSelect">Wettkampftag:</label>
+                    <select id="wettkampfTagImportSelect" class="form-control">
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="wettkampfImportSelect">Wettkampf:</label>
+                    <select id="wettkampfImportSelect" class="form-control" disabled>
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="datei-upload-bereich">
+                <h2>2. Teilnehmerdatei hochladen (Excel .xlsx)</h2>
+                <p>Erwartetes Spaltenformat: Vorname, Nachname, Geburtsdatum (TT.MM.JJJJ), Verein, Geschlecht (m/w/d),
+                    Riegen-Nr (optional)</p>
+                <div class="form-group">
+                    <input type="file" id="teilnehmerDateiInput" accept=".xlsx" class="form-control">
+                </div>
+            </div>
+
+            <div id="vorschauBereich" style="display:none;">
+                <h2>3. Vorschau und Validierung</h2>
+                <p><span id="validierungsInfo"></span></p>
+                <table id="vorschauTabelle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Vorname</th>
+                            <th>Nachname</th>
+                            <th>Geburtsdatum</th>
+                            <th>Verein</th>
+                            <th>Geschlecht</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vorschauTabelleBody">
+                    </tbody>
+                </table>
+                <div class="form-group" style="margin-top: 20px;">
+                    <button id="datenHochladenBtn" class="btn" disabled>Ausgewählte Teilnehmer zum Wettkampf
+                        anmelden</button>
+                </div>
+            </div>
+            <div id="importErgebnisBereich" style="margin-top:20px;">
+                {/* Hier werden Erfolgs-/Fehlermeldungen des Imports angezeigt */}
+            </div>
+        </div>
+    </main>
+    <footer>
+        <div id="footer-placeholder"></div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="/js/wettkampfManagerJS"></script>
+    <script src="/js/wettkampfMassenImport"></script>
+
+</body>
+
+</html>

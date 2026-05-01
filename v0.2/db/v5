@@ -1,0 +1,540 @@
+-- =====================================================
+-- wettkampfDB v5.0
+-- Stack: MySQL · FastAPI · SQLAlchemy · React
+-- Score-Berechnung: Python Backend (nicht Trigger)
+-- =====================================================
+
+DROP DATABASE IF EXISTS wettkampfDB;
+CREATE DATABASE wettkampfDB DEFAULT CHARACTER SET utf8mb4;
+USE wettkampfDB;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- =====================================================
+-- TABELLEN (Reihenfolge beachten wegen FK-Abhängigkeiten)
+-- =====================================================
+
+-- -----------------------------------------------------
+-- Altersklasse
+-- -----------------------------------------------------
+CREATE TABLE `Altersklasse` (
+    `idAltersklasse` INT                      NOT NULL AUTO_INCREMENT,
+    `Kuerzel`        VARCHAR(10)              NOT NULL COMMENT 'z.B. U18M, U18W, Offen',
+    `Bezeichnung`    VARCHAR(45)              NOT NULL COMMENT 'z.B. Under 18 Männlich',
+    `Alter_Von`      INT                      NULL     COMMENT 'Mindestalter inklusiv',
+    `Alter_Bis`      INT                      NULL     COMMENT 'Maximalalter inklusiv',
+    `Geschlecht`     ENUM('m','w','d','alle') NOT NULL DEFAULT 'alle',
+    PRIMARY KEY (`idAltersklasse`),
+    UNIQUE INDEX `UQ_Kuerzel` (`Kuerzel`)
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Wettkampf_Tag  (z.B. "Frühjahrsmeeting 2024")
+-- -----------------------------------------------------
+CREATE TABLE `Wettkampf_Tag` (
+    `idWettkampf_Tag` INT         NOT NULL AUTO_INCREMENT,
+    `Name`            VARCHAR(45) NOT NULL,
+    `Erstell_Datum`   DATE        NOT NULL DEFAULT (CURDATE()),
+    `Wettkampf_Datum` DATE        NOT NULL,
+    PRIMARY KEY (`idWettkampf_Tag`)
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Wettkampf  (z.B. "Mehrkampf U18 Männlich")
+-- -----------------------------------------------------
+CREATE TABLE `Wettkampf` (
+    `idWettkampf`                   INT         NOT NULL AUTO_INCREMENT,
+    `Wettkampf_Nr`                  INT         NOT NULL,
+    `Name`                          VARCHAR(45) NOT NULL,
+    `Altersklasse_id`               INT         NOT NULL,
+    `Status`  ENUM('Entwurf','Anmeldung','Aktiv','Abgeschlossen','Archiviert')
+                                                NOT NULL DEFAULT 'Entwurf',
+    `Wettkampf_Tag_idWettkampf_Tag` INT         NOT NULL,
+    `Typ` ENUM('Einzel','Mannschaft','Kombination')  NOT NULL DEFAULT 'Einzel'
+      AFTER `Status`,
+    `Mannschaft_Groesse` INT NULL
+      COMMENT 'NULL = unbegrenzt; sonst max. Mitglieder pro Team',
+    PRIMARY KEY (`idWettkampf`),
+    UNIQUE INDEX `UQ_Nr_Tag` (`Wettkampf_Nr`, `Wettkampf_Tag_idWettkampf_Tag`),
+    CONSTRAINT `fk_W_Tag`
+        FOREIGN KEY (`Wettkampf_Tag_idWettkampf_Tag`)
+        REFERENCES `Wettkampf_Tag` (`idWettkampf_Tag`)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_W_Altersklasse`
+        FOREIGN KEY (`Altersklasse_id`)
+        REFERENCES `Altersklasse` (`idAltersklasse`)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Mannschaft  (z.B. "Falls es ein Mannschafts Wettkampf ist")
+-- -----------------------------------------------------
+CREATE TABLE `Mannschaft` (
+    `idMannschaft`          INT         NOT NULL AUTO_INCREMENT,
+    `Name`                  VARCHAR(80) NOT NULL,
+    `Verein`                VARCHAR(80) NULL,
+    `Wettkampf_idWettkampf` INT         NOT NULL
+        COMMENT 'Team gehört immer zu genau einem Wettkampf',
+    PRIMARY KEY (`idMannschaft`),
+    UNIQUE INDEX `UQ_Name_Wettkampf` (`Name`, `Wettkampf_idWettkampf`),
+    CONSTRAINT `fk_M_Wettkampf`
+        FOREIGN KEY (`Wettkampf_idWettkampf`)
+        REFERENCES `Wettkampf` (`idWettkampf`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+-- -----------------------------------------------------
+-- Geraete  (reine Stammdaten, z.B. "Weitsprung")
+-- -----------------------------------------------------
+CREATE TABLE `Geraete` (
+    `idGeraete`    INT          NOT NULL AUTO_INCREMENT,
+    `Name`         VARCHAR(45)  NOT NULL,
+    `Einheit`      VARCHAR(20)  NOT NULL DEFAULT 'm' COMMENT 'm, s, cm, kg, Pkt ...',
+    `Beschreibung` VARCHAR(255) NULL,
+    PRIMARY KEY (`idGeraete`),
+    UNIQUE INDEX `UQ_Name` (`Name`)
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Berechnungs_Art
+-- Das Backend liest Regel_Kuerzel und ruft die
+-- passende Python-Funktion auf.
+-- Beispiele: LA_SPRINT, LA_WEITE, TURNEN_OLYMPIC, MANUELL
+-- -----------------------------------------------------
+CREATE TABLE `Berechnungs_Art` (
+    `idBerechnungs_Art` INT          NOT NULL AUTO_INCREMENT,
+    `Regel_Kuerzel`     VARCHAR(50)  NOT NULL COMMENT 'ID für Backend-Logik z.B. LA_SPRINT',
+    `Beschreibung`      VARCHAR(255) NULL,
+    PRIMARY KEY (`idBerechnungs_Art`),
+    UNIQUE INDEX `UQ_Kuerzel` (`Regel_Kuerzel`)
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Geraete_has_Wettkampf
+-- Welche Geräte in welchem Wettkampf + Berechnungsparameter
+-- Score_Faktor / Score_Offset werden vom Python-Backend
+-- als Parameter der Berechnungsfunktion genutzt.
+-- -----------------------------------------------------
+CREATE TABLE `Geraete_has_Wettkampf` (
+    `idGeraete_Wettkampf`    INT           NOT NULL AUTO_INCREMENT,
+    `Wettkampf_idWettkampf`  INT           NOT NULL,
+    `Geraete_idGeraete`      INT           NOT NULL,
+    `Anzahl_Versuche`        INT           NOT NULL DEFAULT 1,
+    `Reihenfolge`            INT           NULL     COMMENT '1=erstes Gerät, 2=zweites ...',
+    `Berechnungs_Art_id`     INT           NOT NULL,
+    `Score_Faktor`           DECIMAL(10,4) NOT NULL DEFAULT 1.0000,
+    `Score_Offset`           DECIMAL(10,4) NOT NULL DEFAULT 0.0000,
+    `Erwartete_Kampfrichter` INT           NOT NULL DEFAULT 1
+                             COMMENT 'Anzahl Richter die abgeben müssen bis Score berechnet wird',
+    PRIMARY KEY (`idGeraete_Wettkampf`),
+    UNIQUE INDEX `UQ_Wettkampf_Geraet` (`Wettkampf_idWettkampf`, `Geraete_idGeraete`),
+    CONSTRAINT `fk_GhW_Wettkampf`
+        FOREIGN KEY (`Wettkampf_idWettkampf`)
+        REFERENCES `Wettkampf` (`idWettkampf`)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_GhW_Geraete`
+        FOREIGN KEY (`Geraete_idGeraete`)
+        REFERENCES `Geraete` (`idGeraete`)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_GhW_Berechnung`
+        FOREIGN KEY (`Berechnungs_Art_id`)
+        REFERENCES `Berechnungs_Art` (`idBerechnungs_Art`)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Personen  (Teilnehmer)
+-- -----------------------------------------------------
+CREATE TABLE `Personen` (
+    `idPersonen`   INT               NOT NULL AUTO_INCREMENT,
+    `Vorname`      VARCHAR(45)       NOT NULL,
+    `Nachname`     VARCHAR(45)       NOT NULL,
+    `Geburtsdatum` DATE              NULL,
+    `Verein`       VARCHAR(45)       NULL,
+    `Geschlecht`   ENUM('m','w','d') NULL,
+    PRIMARY KEY (`idPersonen`)
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- user  (Web-Oberfläche Login)
+-- -----------------------------------------------------
+CREATE TABLE `user` (
+    `id`            INT          NOT NULL AUTO_INCREMENT,
+    `username`      VARCHAR(80)  NOT NULL,
+    `email`         VARCHAR(120) NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL COMMENT 'Immer bcrypt-Hash, nie Klartext!',
+    `role`          ENUM('admin','kampfrichter','viewer') NOT NULL DEFAULT 'viewer',
+    `Personen_id`   INT          NULL COMMENT 'Falls User auch Teilnehmer ist',
+    `is_active`     TINYINT(1)   NOT NULL DEFAULT 1,
+    `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `last_login`    TIMESTAMP    NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `UQ_username` (`username`),
+    UNIQUE INDEX `UQ_email`    (`email`),
+    CONSTRAINT `fk_user_Personen`
+        FOREIGN KEY (`Personen_id`)
+        REFERENCES `Personen` (`idPersonen`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Personen_has_Wettkampf  (Startliste / Anmeldung)
+-- -----------------------------------------------------
+CREATE TABLE `Personen_has_Wettkampf` (
+    `Personen_idPersonen`   INT       NOT NULL,
+    `Wettkampf_idWettkampf` INT       NOT NULL,
+    `Riege`                 INT       NULL,
+    `Angemeldet_Am`         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `Mannschaft_id` INT NULL
+      COMMENT 'NULL = Einzelstarter; gesetzt = Teammitglied',
+    PRIMARY KEY (`Personen_idPersonen`, `Wettkampf_idWettkampf`),
+    CONSTRAINT `fk_PhW_Personen`
+        FOREIGN KEY (`Personen_idPersonen`)
+        REFERENCES `Personen` (`idPersonen`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_PhW_Wettkampf`
+        FOREIGN KEY (`Wettkampf_idWettkampf`)
+        REFERENCES `Wettkampf` (`idWettkampf`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_PhW_Mannschaft`
+        FOREIGN KEY (`Mannschaft_id`)
+        REFERENCES `Mannschaft` (`idMannschaft`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Mannschaft_Ergebnis 
+-- -----------------------------------------------------
+CREATE TABLE `Mannschaft_Ergebnis` (
+    `idMannschaft_Ergebnis` INT           NOT NULL AUTO_INCREMENT,
+    `Mannschaft_id`         INT           NOT NULL,
+    `GesamtScore`           DECIMAL(10,3) NOT NULL DEFAULT 0
+        COMMENT 'Vom Python-Backend: Summe der gewerteten Mitglieder-Scores',
+    `Berechnet_Am`          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                          ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`idMannschaft_Ergebnis`),
+    UNIQUE INDEX `UQ_Mannschaft` (`Mannschaft_id`),
+    CONSTRAINT `fk_ME_Mannschaft`
+        FOREIGN KEY (`Mannschaft_id`)
+        REFERENCES `Mannschaft` (`idMannschaft`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Kampfrichter_has_Geraete_Wettkampf
+-- Wer ist Kampfrichter an welchem Gerät in welchem Wettkampf
+-- -----------------------------------------------------
+CREATE TABLE `Kampfrichter_has_Geraete_Wettkampf` (
+    `user_id`               INT NOT NULL,
+    `idGeraete_Wettkampf`   INT NOT NULL,
+    `Rolle` ENUM('Hauptkampfrichter','Assistent','Zeitnehmer') NOT NULL DEFAULT 'Assistent',
+    PRIMARY KEY (`user_id`, `idGeraete_Wettkampf`),
+    CONSTRAINT `fk_KhGW_User`
+        FOREIGN KEY (`user_id`)
+        REFERENCES `user` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_KhGW_GhW`
+        FOREIGN KEY (`idGeraete_Wettkampf`)
+        REFERENCES `Geraete_has_Wettkampf` (`idGeraete_Wettkampf`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Einzel_Ergebnis
+-- 1 Zeile = 1 Versuch einer Person an einem Gerät.
+-- Die zusammengesetzten FKs erzwingen DB-seitig:
+--   1. Person muss für diesen Wettkampf angemeldet sein
+--   2. Gerät muss in diesem Wettkampf erlaubt sein
+-- Score wird vom Python-Backend berechnet und gesetzt.
+-- -----------------------------------------------------
+CREATE TABLE `Einzel_Ergebnis` (
+    `idEinzel_Ergebnis`     INT           NOT NULL AUTO_INCREMENT,
+    `Personen_idPersonen`   INT           NOT NULL,
+    `Wettkampf_idWettkampf` INT           NOT NULL,
+    `Geraete_idGeraete`     INT           NOT NULL,
+    `Versuch_Nr`            INT           NOT NULL DEFAULT 1 COMMENT '1, 2, 3 ... pro Person+Gerät',
+    `Wert`                  DECIMAL(10,3) NULL     COMMENT 'Rohwert: Zeit in s, Weite in m ...',
+    `Score`                 DECIMAL(10,3) NOT NULL DEFAULT 0 COMMENT 'Vom Python-Backend gesetzt',
+    `Ist_Gueltig`           TINYINT(1)    NOT NULL DEFAULT 1 COMMENT '0 = Fehlversuch',
+    `Status` ENUM('Ausstehend','In_Bewertung','Freigegeben') NOT NULL DEFAULT 'Ausstehend',
+    `Erfasst_Am`            TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `Erfasst_Von`           INT           NULL,
+    PRIMARY KEY (`idEinzel_Ergebnis`),
+    UNIQUE INDEX `UQ_Person_Wettkampf_Geraet_Versuch`
+        (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`),
+    -- Stellt sicher: Person muss angemeldet sein
+    CONSTRAINT `fk_EE_Startliste`
+        FOREIGN KEY (`Personen_idPersonen`, `Wettkampf_idWettkampf`)
+        REFERENCES `Personen_has_Wettkampf` (`Personen_idPersonen`, `Wettkampf_idWettkampf`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    -- Stellt sicher: Gerät muss im Wettkampf erlaubt sein
+    CONSTRAINT `fk_EE_Geraet_Erlaubt`
+        FOREIGN KEY (`Wettkampf_idWettkampf`, `Geraete_idGeraete`)
+        REFERENCES `Geraete_has_Wettkampf` (`Wettkampf_idWettkampf`, `Geraete_idGeraete`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_EE_User`
+        FOREIGN KEY (`Erfasst_Von`)
+        REFERENCES `user` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Kampfrichter_Wertung
+-- Header: Welcher Richter bewertet welchen Versuch
+-- -----------------------------------------------------
+CREATE TABLE `Kampfrichter_Wertung` (
+    `idWertung`            INT       NOT NULL AUTO_INCREMENT,
+    `Einzel_Ergebnis_id`   INT       NOT NULL,
+    `Kampfrichter_user_id` INT       NOT NULL,
+    `Erfasst_Am`           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`idWertung`),
+    UNIQUE INDEX `UQ_Richter_Versuch` (`Einzel_Ergebnis_id`, `Kampfrichter_user_id`),
+    CONSTRAINT `fk_KW_Ergebnis`
+        FOREIGN KEY (`Einzel_Ergebnis_id`)
+        REFERENCES `Einzel_Ergebnis` (`idEinzel_Ergebnis`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_KW_User`
+        FOREIGN KEY (`Kampfrichter_user_id`)
+        REFERENCES `user` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Kampfrichter_Wertung_Detail  (Key-Value pro Wertung)
+-- Flexibel für jede Sportart:
+-- Leichtathletik: Kriterium="Weite",    Wert=6.50
+-- Turnen:         Kriterium="D_Note",   Wert=5.40
+--                 Kriterium="E_Note",   Wert=8.20
+--                 Kriterium="Abzug",    Wert=0.10
+-- -----------------------------------------------------
+CREATE TABLE `Kampfrichter_Wertung_Detail` (
+    `idDetail`   INT           NOT NULL AUTO_INCREMENT,
+    `Wertung_id` INT           NOT NULL,
+    `Kriterium`  VARCHAR(50)   NOT NULL COMMENT 'z.B. D_Note, E_Note, Weite, Zeit, Abzug',
+    `Wert`       DECIMAL(10,3) NOT NULL,
+    PRIMARY KEY (`idDetail`),
+    UNIQUE INDEX `UQ_Wertung_Kriterium` (`Wertung_id`, `Kriterium`),
+    CONSTRAINT `fk_KWD_Wertung`
+        FOREIGN KEY (`Wertung_id`)
+        REFERENCES `Kampfrichter_Wertung` (`idWertung`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Gesamt_Ergebnisse
+-- Wird vom Python-Backend nach jeder Score-Berechnung
+-- aktualisiert. Ermöglicht schnelle Ranglisten-Abfragen.
+-- GesamtScore = Summe der besten gültigen Versuche
+--               pro Gerät für diese Person+Wettkampf
+-- -----------------------------------------------------
+CREATE TABLE `Gesamt_Ergebnisse` (
+    `idGesamt_Ergebnisse`   INT           NOT NULL AUTO_INCREMENT,
+    `Personen_idPersonen`   INT           NOT NULL,
+    `Wettkampf_idWettkampf` INT           NOT NULL,
+    `GesamtScore`           DECIMAL(10,3) NOT NULL DEFAULT 0,
+    `Berechnet_Am`          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                          ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`idGesamt_Ergebnisse`),
+    UNIQUE INDEX `UQ_Person_Wettkampf` (`Personen_idPersonen`, `Wettkampf_idWettkampf`),
+    CONSTRAINT `fk_GE_Personen`
+        FOREIGN KEY (`Personen_idPersonen`)
+        REFERENCES `Personen` (`idPersonen`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_GE_Wettkampf`
+        FOREIGN KEY (`Wettkampf_idWettkampf`)
+        REFERENCES `Wettkampf` (`idWettkampf`)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Audit_Log  (wer hat wann was geändert)
+-- -----------------------------------------------------
+CREATE TABLE `Audit_Log` (
+    `idAudit_Log`  INT         NOT NULL AUTO_INCREMENT,
+    `user_id`      INT         NULL,
+    `Tabelle`      VARCHAR(50) NOT NULL,
+    `Datensatz_id` INT         NOT NULL,
+    `Aktion`       ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    `Alt_Wert`     JSON        NULL,
+    `Neu_Wert`     JSON        NULL,
+    `Zeitpunkt`    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`idAudit_Log`),
+    CONSTRAINT `fk_AL_User`
+        FOREIGN KEY (`user_id`)
+        REFERENCES `user` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+
+-- =====================================================
+-- BEISPIELDATEN
+-- =====================================================
+
+-- Altersklassen
+INSERT INTO `Altersklasse` (`Kuerzel`, `Bezeichnung`, `Alter_Von`, `Alter_Bis`, `Geschlecht`) VALUES
+('U18M',  'Under 18 Männlich', 14, 17, 'm'),
+('U18W',  'Under 18 Weiblich', 14, 17, 'w'),
+('Offen', 'Offen für alle',    NULL, NULL, 'alle');
+
+-- Wettkampftage
+INSERT INTO `Wettkampf_Tag` (`Name`, `Wettkampf_Datum`) VALUES
+('Frühjahrsmeeting 2024',     '2024-04-15'),
+('Sommerturnfest 2024',       '2024-07-20'),
+('Herbstmeisterschaften 2024','2024-10-05');
+
+-- Wettkämpfe
+INSERT INTO `Wettkampf` (`Wettkampf_Nr`, `Name`, `Altersklasse_id`, `Status`, `Wettkampf_Tag_idWettkampf_Tag`) VALUES
+(101, 'Mehrkampf U18 Männlich',  1, 'Abgeschlossen', 1),
+(102, 'Mehrkampf U18 Weiblich',  2, 'Abgeschlossen', 1),
+(201, 'Einzeldisziplinen Offen', 3, 'Aktiv',          2),
+(202, 'Team Challenge',          3, 'Entwurf',        2);
+
+-- Geräte
+INSERT INTO `Geraete` (`Name`, `Einheit`, `Beschreibung`) VALUES
+('Sprint 100m', 's', 'Zeit in Sekunden'),
+('Weitsprung',  'm', 'Weite in Metern'),
+('Kugelstoßen', 'm', 'Weite in Metern'),
+('Hochsprung',  'm', 'Höhe in Metern'),
+('Speerwurf',   'm', 'Weite in Metern');
+
+-- Berechnungsarten
+-- Das Backend implementiert die Logik hinter dem Kuerzel.
+-- LA_SPRINT:  Score = Offset - (Wert * Faktor)  →  30 - 12.5s = 17.5 Pkt
+-- LA_WEITE:   Score = Wert * Faktor              →  6.50m * 1.0 = 6.5 Pkt
+-- MANUELL:    Score wird direkt vom Richter eingetragen
+INSERT INTO `Berechnungs_Art` (`Regel_Kuerzel`, `Beschreibung`) VALUES
+('LA_SPRINT', 'Leichtathletik Sprint: Offset - (Wert * Faktor). Kleiner = besser.'),
+('LA_WEITE',  'Leichtathletik Weite/Höhe: Wert * Faktor. Größer = besser.'),
+('MANUELL',   'Score wird manuell eingetragen, keine automatische Berechnung.');
+
+-- Geräte → Wettkampf Zuordnung
+-- Mehrkampf U18M (idWettkampf=1)
+INSERT INTO `Geraete_has_Wettkampf`
+    (`Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Anzahl_Versuche`, `Reihenfolge`, `Berechnungs_Art_id`, `Score_Faktor`, `Score_Offset`) VALUES
+(1, 1, 1, 1, 1, 1.0000, 30.0000),  -- Sprint:     Score = 30 - Zeit
+(1, 2, 3, 2, 2, 1.0000,  0.0000),  -- Weitsprung: Score = Weite
+(1, 3, 3, 3, 2, 1.0000,  0.0000);  -- Kugelstoßen:Score = Weite
+
+-- Mehrkampf U18W (idWettkampf=2)
+INSERT INTO `Geraete_has_Wettkampf`
+    (`Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Anzahl_Versuche`, `Reihenfolge`, `Berechnungs_Art_id`, `Score_Faktor`, `Score_Offset`) VALUES
+(2, 1, 1, 1, 1, 1.0000, 30.0000),  -- Sprint
+(2, 2, 3, 2, 2, 1.0000,  0.0000);  -- Weitsprung
+
+-- Einzeldisziplinen Offen (idWettkampf=3)
+INSERT INTO `Geraete_has_Wettkampf`
+    (`Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Anzahl_Versuche`, `Reihenfolge`, `Berechnungs_Art_id`, `Score_Faktor`, `Score_Offset`) VALUES
+(3, 1, 1, 1, 1, 1.0000, 30.0000),  -- Sprint
+(3, 2, 3, 2, 2, 1.0000,  0.0000),  -- Weitsprung
+(3, 3, 3, 3, 2, 1.0000,  0.0000),  -- Kugelstoßen
+(3, 4, 1, 4, 2, 1.0000,  0.0000),  -- Hochsprung
+(3, 5, 2, 5, 2, 1.0000,  0.0000);  -- Speerwurf
+
+-- Personen
+INSERT INTO `Personen` (`Vorname`, `Nachname`, `Geburtsdatum`, `Verein`, `Geschlecht`) VALUES
+('Max',   'Mustermann', '2008-05-12', 'Turnverein Musterstadt', 'm'),
+('Erika', 'Musterfrau', '2007-08-20', 'Sportfreunde Beispiel',  'w'),
+('John',  'Doe',        '2006-01-30', 'Athletik Club Anonym',   'm'),
+('Jane',  'Smith',      '2007-11-05', 'Turnverein Musterstadt', 'w'),
+('Peter', 'Pan',        '2008-07-15', 'Nimmerland Sport Club',  'm');
+
+-- Anmeldungen (Startliste)
+INSERT INTO `Personen_has_Wettkampf` (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Riege`) VALUES
+(1, 1, 1),  -- Max   → Mehrkampf U18M
+(5, 1, 1),  -- Peter → Mehrkampf U18M
+(2, 2, 1),  -- Erika → Mehrkampf U18W
+(4, 2, 1),  -- Jane  → Mehrkampf U18W
+(3, 3, 2),  -- John  → Einzeldisziplinen Offen
+(4, 3, 2);  -- Jane  → Einzeldisziplinen Offen
+
+-- Einzelergebnisse
+-- Score=0 hier, wird vom Python-Backend nach INSERT berechnet und geupdated.
+-- Max (1) im Mehrkampf U18M (Wettkampf 1, Geräte 1/2/3)
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(1, 1, 1, 1, 12.500, 1, 'Freigegeben'),  -- Sprint
+(1, 1, 2, 1,  5.200, 1, 'Freigegeben'),  -- Weitsprung V1
+(1, 1, 2, 2,  5.350, 1, 'Freigegeben'),  -- Weitsprung V2 (bester)
+(1, 1, 2, 3,  5.100, 1, 'Freigegeben'),  -- Weitsprung V3
+(1, 1, 3, 1, 10.500, 1, 'Freigegeben'),  -- Kugelstoßen V1
+(1, 1, 3, 2,  9.800, 1, 'Freigegeben'),  -- Kugelstoßen V2
+(1, 1, 3, 3, 10.200, 1, 'Freigegeben');  -- Kugelstoßen V3
+
+-- Peter (5) im Mehrkampf U18M
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(5, 1, 1, 1, 11.900, 1, 'Freigegeben'),  -- Sprint
+(5, 1, 2, 1,  5.800, 1, 'Freigegeben'),  -- Weitsprung V1 (bester)
+(5, 1, 2, 2,  0.000, 0, 'Freigegeben'),  -- Weitsprung V2 — ungültig
+(5, 1, 2, 3,  5.750, 1, 'Freigegeben');  -- Weitsprung V3
+
+-- Erika (2) im Mehrkampf U18W
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(2, 2, 1, 1, 13.100, 1, 'Freigegeben'),  -- Sprint
+(2, 2, 2, 1,  4.800, 1, 'Freigegeben'),  -- Weitsprung V1
+(2, 2, 2, 2,  4.950, 1, 'Freigegeben'),  -- Weitsprung V2 (bester)
+(2, 2, 2, 3,  4.880, 1, 'Freigegeben');  -- Weitsprung V3
+
+-- Jane (4) im Mehrkampf U18W
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(4, 2, 1, 1, 12.800, 1, 'Freigegeben');  -- Sprint
+
+-- John (3) im Einzeldisziplinen Offen
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(3, 3, 3, 1, 14.200, 1, 'Freigegeben'),  -- Kugelstoßen V1
+(3, 3, 3, 2, 13.800, 1, 'Freigegeben'),  -- Kugelstoßen V2
+(3, 3, 3, 3, 14.500, 1, 'Freigegeben');  -- Kugelstoßen V3 (bester)
+
+-- Jane (4) im Einzeldisziplinen Offen
+INSERT INTO `Einzel_Ergebnis`
+    (`Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Versuch_Nr`, `Wert`, `Ist_Gueltig`, `Status`) VALUES
+(4, 3, 5, 1, 35.500, 1, 'Freigegeben'),  -- Speerwurf V1 (bester)
+(4, 3, 5, 2, 33.200, 1, 'Freigegeben');  -- Speerwurf V2
+
+
+-- =====================================================
+-- NÜTZLICHE ABFRAGEN
+-- =====================================================
+
+-- Rangliste eines Wettkampfs
+-- SELECT
+--     RANK() OVER (ORDER BY ge.GesamtScore DESC) AS Platz,
+--     p.Vorname, p.Nachname, p.Verein, ge.GesamtScore
+-- FROM Gesamt_Ergebnisse ge
+-- JOIN Personen p ON ge.Personen_idPersonen = p.idPersonen
+-- WHERE ge.Wettkampf_idWettkampf = 1
+-- ORDER BY Platz;
+
+-- Alle Versuche + bester Versuch einer Person an einem Gerät
+-- SELECT
+--     ee.Versuch_Nr, ee.Wert, ee.Score, ee.Ist_Gueltig,
+--     IF(ee.Score = MAX(ee.Score) OVER (), '★', '') AS Bester
+-- FROM Einzel_Ergebnis ee
+-- WHERE ee.Personen_idPersonen = 1
+--   AND ee.Wettkampf_idWettkampf = 1
+--   AND ee.Geraete_idGeraete = 2
+-- ORDER BY ee.Versuch_Nr;
+
+-- Alle Wettkämpfe eines Tages mit Teilnehmerzahl und Status
+-- SELECT
+--     w.Wettkampf_Nr, w.Name, a.Kuerzel AS Altersklasse,
+--     w.Status, COUNT(phw.Personen_idPersonen) AS Teilnehmer
+-- FROM Wettkampf w
+-- JOIN Altersklasse a ON w.Altersklasse_id = a.idAltersklasse
+-- LEFT JOIN Personen_has_Wettkampf phw ON w.idWettkampf = phw.Wettkampf_idWettkampf
+-- WHERE w.Wettkampf_Tag_idWettkampf_Tag = 1
+-- GROUP BY w.idWettkampf
+-- ORDER BY w.Wettkampf_Nr;
+
+-- Welche Richter sind noch nicht fertig (Status In_Bewertung)
+-- SELECT p.Vorname, p.Nachname, g.Name AS Geraet, ee.Versuch_Nr, ee.Status
+-- FROM Einzel_Ergebnis ee
+-- JOIN Personen p ON ee.Personen_idPersonen = p.idPersonen
+-- JOIN Geraete  g ON ee.Geraete_idGeraete   = g.idGeraete
+-- WHERE ee.Wettkampf_idWettkampf = 1
+--   AND ee.Status = 'In_Bewertung'
+-- ORDER BY g.Name, p.Nachname;

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettkampf Dateneingabe</title>
+    <link rel="stylesheet" href="/css/wettkampfManagerStyle">
+    <link rel="stylesheet" href="/css/wettkampfDateneingabe">
+</head>
+
+<body>
+
+    <header>
+        <div id="header-placeholder"></div>
+        <h1>Wettkampf Dateneingabe</h1>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="einstellungen">
+                <h2>Grundeinstellungen</h2>
+                <div class="form-group">
+                    <label for="wettkampfTagSelect">1. Wettkampftag:</label>
+                    <select id="wettkampfTagSelect" class="form-control">
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="wettkampfSelect">2. Wettkampf:</label>
+                    <select id="wettkampfSelect" class="form-control" disabled>
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="geraetSelect">3. Gerät:</label>
+                    <select id="geraetSelect" class="form-control" disabled>
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="ansicht-filter">
+                <h2>Teilnehmer-Filter</h2>
+                <div class="form-group">
+                    <label for="ansichtTypSelect">Anzeigen:</label>
+                    <select id="ansichtTypSelect" class="form-control" disabled>
+                        <option value="alle">Alle Teilnehmer des Wettkampfs</option>
+                        <option value="riege">Nach Riege suchen</option>
+                        <option value="person">Einzelperson suchen</option>
+                    </select>
+                </div>
+                <div id="riegeSucheBereich" class="form-group filter-bereich" style="display: none;">
+                    <label for="riegeInput">Riegen-Nr.:</label>
+                    <input type="text" id="riegeInput" class="form-control">
+                    <button id="riegeSuchenBtn" class="btn">Riege laden</button>
+                </div>
+                <div id="personSucheBereich" class="form-group filter-bereich" style="display: none;">
+                    <label for="personSuchbegriffInput">Name/ID:</label>
+                    <input type="text" id="personSuchbegriffInput" class="form-control">
+                    <button id="personSuchenBtn" class="btn">Person suchen</button>
+                </div>
+                <button id="resetViewBtn" class="btn btn-secondary">Ansicht zurücksetzen</button>
+            </div>
+
+            <div class="teilnehmer-tabelle-bereich">
+                <h2>Teilnehmerliste</h2>
+                <table id="teilnehmerTabelle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vorname</th>
+                            <th>Nachname</th>
+                            <th>Verein</th>
+                            <th>Riege</th>
+                            <th>Ergebnis erfasst</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teilnehmerTabelleBody">
+                    </tbody>
+                </table>
+                <p id="keineTeilnehmerInfo" style="display:none;">Keine Teilnehmer für die aktuelle Auswahl gefunden
+                    oder
+                    Filter noch nicht aktiv.</p>
+            </div>
+        </div>
+
+        <div id="wertungModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h3 id="wertungModalTitle">Wertung eingeben für <span id="personNameModal"></span></h3>
+                <form id="wertungForm">
+                    <input type="hidden" id="personIdInputModal">
+                    <input type="hidden" id="geraeteWettkampfIdInputModal">
+                    <input type="hidden" id="existierendesErgebnisIdInputModal">
+
+                    <div id="wertungsVariablenContainer">
+                    </div>
+                    <div class="form-group">
+                        <label for="versuchNrInputModal">Versuch Nr. (optional):</label>
+                        <input type="number" id="versuchNrInputModal" name="versuchNrInputModal" value="1" min="1"
+                            class="form-control">
+                        <div class="modal-buttons">
+                            <button type="submit" class="btn">Wertung speichern</button>
+                            <button id="loeschButton" type="button" class="btn btn-danger"
+                                style="display: none;">Löschen</button>
+                        </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div id="footer-placeholder"></div>
+    </footer>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="/js/wettkampfManagerJS"></script>
+    <script src="/js/wettkampfDateneingabe"></script>
+</body>
+
+</html>

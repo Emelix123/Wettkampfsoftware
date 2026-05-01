@@ -1,0 +1,83 @@
+/* admincenter.css */
+
+/* Stile für globale Einstellungen, Benutzerverwaltung, System Logs etc. */
+
+.admin-section {
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid #d6d8db;
+    border-radius: 5px;
+    background-color: #f8f9fa; /* Etwas dunklerer Hintergrund für Sektionen */
+}
+
+.admin-section h3 {
+    color: #c82333; /* Rote Akzentfarbe für Admin-Überschriften */
+    border-bottom: 1px dashed #dc3545;
+    padding-bottom: 0.5em;
+}
+
+.user-list-table th {
+    background-color: #f1b0b7; /* Hellrot für User-Tabellen-Header */
+    color: #721c24;
+}
+
+.system-log-anzeige {
+    background-color: #212529; /* Dunkler Hintergrund für Logs */
+    color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace; /* Monospace für Logs */
+    font-size: 0.9em;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap; /* Zeilenumbrüche im Log beibehalten */
+}
+
+.config-form .form-group {
+    border-bottom: 1px dotted #ccc;
+    padding-bottom: 15px;
+}
+.config-form .form-group:last-child {
+    border-bottom: none;
+}
+
+.config-form label {
+    font-weight: bold;
+}
+
+.config-form small.form-text { /* Hilfetext für Config-Optionen */
+    display: block;
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 3px;
+}
+
+.ergebnis-uebersicht {
+    /* Spezifisches Layout für eine Übersichtsbox */
+    background-color: #f0f8ff; /* AliceBlue für einen sanften Hintergrund */
+    padding: 20px;
+    border-radius: 5px;
+    border-left: 5px solid #007bff;
+    margin-bottom: 20px;
+}
+
+.rangliste-tabelle th {
+    background-color: #d1ecf1; /* Hellblau für Ranglisten-Header */
+    color: #0c5460;
+}
+
+.rangliste-tabelle .platz-1 {
+    font-weight: bold;
+    color: #d3a40a; /* Goldähnliche Farbe */
+    background-color: #fff3cd;
+}
+.rangliste-tabelle .platz-2 {
+    font-weight: bold;
+    color: #808080; /* Silberähnliche Farbe */
+    background-color: #e2e3e5;
+}
+.rangliste-tabelle .platz-3 {
+    font-weight: bold;
+    color: #CD7F32; /* Bronzeähnliche Farbe */
+    background-color: #f8f0e3;
+}

@@ -1,0 +1,13 @@
+DB: MySQL 
+Backend: Python
+	 FastAPI
+	 SQLAIchemy
+	 Konfigurationsdatei für Variablen im Frontend
+	 REST
+	 Websockets
+	 Pydantic (Prüfen von Eingaben)
+
+Frontend:HTML
+	 CSS
+	 JS
+	 REACT

@@ -1,0 +1,14 @@
+Flask
+gunicorn # WSGI-Server für Flask
+mysql-connector-python 
+python-dotenv # Optional, um .env-Dateien für lokale Entwicklung zu laden
+CORS
+db
+datetime
+pandas
+xlsxwriter 
+openpyxl
+bcrypt
+pymysql
+
+# Füge hier weitere benötigte Python-Pakete hinzu

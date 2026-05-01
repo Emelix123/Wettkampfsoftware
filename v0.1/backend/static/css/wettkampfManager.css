@@ -1,0 +1,148 @@
+.wettkampf-anlegen {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.wettkampf-anlegen h2 {
+    margin-top: 0;
+}
+
+.wettkampf-anlegen div {
+    margin-bottom: 10px;
+}
+
+.wettkampf-anlegen label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.wettkampf-anlegen input[type="text"],
+.wettkampf-anlegen input[type="date"],
+.wettkampf-anlegen textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.wettkampf-anlegen button[type="submit"] {
+    background-color: #5cb85c;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.wettkampf-anlegen button[type="submit"]:hover {
+    background-color: #4cae4c;
+}
+
+.wettkampf-liste h2 {
+    margin-top: 20px;
+}
+
+.wettkampf-liste ul {
+    list-style: none;
+    padding: 0;
+}
+
+.wettkampf-liste li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.wettkampf-liste li:last-child {
+    border-bottom: none;
+}
+
+/* manager.css */
+
+/* Stile für Verwaltungsansichten, Dashboards, Einstellungsformulare etc. */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive Grid */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.dashboard-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.dashboard-card h3 {
+    margin-top: 0;
+    color: #007bff;
+}
+
+.dashboard-card .value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #343a40;
+    display: block;
+    margin-top: 5px;
+}
+
+.management-tabelle th {
+    background-color: #ffeeba; /* Hellgelb für Management-Tabellen-Header */
+    color: #856404;
+}
+
+.management-tabelle .actions a,
+.management-tabelle .actions button {
+    margin-right: 5px;
+    font-size: 0.9em; /* Kleinere Aktionsbuttons */
+}
+
+.form-bearbeiten-manager {
+    background-color: #fdfdff; /* Sehr heller Hintergrund für Bearbeitungsformulare */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.tabs-manager ul {
+    list-style-type: none;
+    padding-left: 0;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 15px;
+    display: flex;
+}
+
+.tabs-manager ul li {
+    margin-right: 5px;
+}
+
+.tabs-manager ul li a {
+    display: block;
+    padding: 10px 15px;
+    color: #007bff;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-bottom: none; /* Wichtig für Tab-Effekt */
+    border-radius: 4px 4px 0 0;
+}
+
+.tabs-manager ul li a.active,
+.tabs-manager ul li a:hover {
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff; /* Rahmen für aktiven Tab */
+    color: #0056b3;
+}
+
+.tab-content-manager {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-top: none; /* Anschluss an Tabs */
+}

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettkampf Manager Admincenter</title>
+    <link rel="stylesheet" href="/css/wettkampfManagerStyle">
+    <link rel="stylesheet" href="/css/wettkampfManagerAdmincenter">
+</head>
+
+<body>
+    <header>
+        <div id="header-placeholder"></div>
+        <h1>Wettkampf Admincenter</h1>
+    </header>
+    <main>
+        <div class="container">
+
+            <section class="wettkampf-anlegen">
+                <h2>Neuen Wettkampf anlegen</h2>
+                <form id="neuerWettkampfForm">
+                    <div>
+                        <label for="name">Name des Wettkampfs:</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div>
+                        <label for="date">Datum:</label>
+                        <input type="date" id="date" name="date">
+                    </div>
+                    <div>
+                        <label for="description">Beschreibung:</label>
+                        <textarea id="description" name="description"></textarea>
+                    </div>
+                    <button type="submit">Wettkampf speichern</button>
+                </form>
+                <h2>Wettkampf Export</h2>
+                <div class="form-group">
+                    <label for="wettkampfTagFilterSelect">Wettkampftag:</label>
+                    <select id="wettkampfTagFilterSelect" class="form-control">
+                        <option value="">-- Bitte wählen --</option>
+                    </select>
+                </div>
+
+                <div class="Button">
+                    <button id="ladeErgebnisseBtn" class="btn btn-primary">Wettkampf anzeigen</button>
+                    <button id="generateExcelBtn" class="btn btn-success" disabled>Excel erstellen</button>
+                    <button id="downloadExcelBtn" class="btn btn-success" disabled>Excel herunterladen</button>
+                </div>
+
+                <div id="ergebnisAnzeigeBereich" class="mt-3"></div>
+            </section>
+
+            <section class="wettkampf-liste">
+                <h2>Aktuelle Wettkämpfe</h2>
+                <ul id="wettkampfListe">
+                </ul>
+            </section>
+        </div>
+       <div class="container">
+        <h2>Benutzerverwaltung</h2>
+
+        <div id="user-list-placeholder">
+            <p>Lade Benutzerdaten...</p>
+        </div>
+
+        <div id="flash-messages"></div> </div>
+
+    <script>
+        // Funktion zum Laden des Headers (wie im vorherigen Beispiel)
+        // ... (Deine loadHeader Funktion hier einfügen) ...
+
+        // Funktion zum Laden der Benutzerliste
+        async function loadUserList() {
+            const userListPlaceholder = document.getElementById('user-list-placeholder');
+            if (!userListPlaceholder) {
+                console.error("Placeholder 'user-list-placeholder' nicht gefunden.");
+                return;
+            }
+
+            userListPlaceholder.innerHTML = '<p>Lade Benutzerdaten...</p>'; // Ladeanzeige
+
+            try {
+                const response = await fetch('/get_users_for_admin');
+                const data = await response.json();
+
+                if (response.ok && data.users) {
+                    let tableHTML = `
+                        <h3>Benutzerliste</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Benutzername</th>
+                                    <th>E-Mail</th>
+                                    <th>Rolle</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    if (data.users.length > 0) {
+                        data.users.forEach(user => {
+                            tableHTML += `
+                                <tr>
+                                    <td>${user.id}</td>
+                                    <td>${user.username}</td>
+                                    <td>${user.email}</td>
+                                    <td>
+                                        <form class="role-form" data-user-id="${user.id}">
+                                            <input type="hidden" name="user_id" value="${user.id}">
+                                            <select name="new_role" onchange="this.form.dispatchEvent(new Event('submit'))">
+                                                <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                                                <option value="kampfrichter" ${user.role === 'kampfrichter' ? 'selected' : ''}>Kampfrichter</option>
+                                                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                            </select>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <button class="delete-user-btn" data-user-id="${user.id}">Löschen</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        tableHTML += `<tr><td colspan="5">Keine Benutzer gefunden.</td></tr>`;
+                    }
+                    tableHTML += `</tbody></table>`;
+                    userListPlaceholder.innerHTML = tableHTML;
+
+                    // Event-Listener für Rollenänderung und Lösch-Buttons hinzufügen
+                    addRoleFormListeners();
+                    addDeleteButtonListeners(); // Funktion definieren, wenn Löschen implementiert wird
+
+                } else {
+                    // Fehlerfall (z.B. wenn data.users fehlt oder response.ok false ist)
+                    displayFlashMessages(data.message || 'Fehler beim Laden der Benutzer.', 'danger');
+                    userListPlaceholder.innerHTML = '<p>Fehler beim Laden der Benutzerliste.</p>';
+                }
+
+            } catch (error) {
+                console.error('Fehler beim Senden der Anfrage:', error);
+                displayFlashMessages('Ein Netzwerkfehler ist aufgetreten oder die Sitzung ist abgelaufen.', 'danger');
+                userListPlaceholder.innerHTML = '<p>Fehler beim Laden der Benutzerliste.</p>';
+            }
+        }
+
+        // Funktion zum Hinzufügen von Event-Listenern für die Rollen-Formulare
+        function addRoleFormListeners() {
+            document.querySelectorAll('.role-form').forEach(form => {
+                form.addEventListener('submit', async function(event) {
+                    event.preventDefault(); // Standardformular-Submit verhindern
+
+                    const userId = this.dataset.userId;
+                    const newRole = this.elements.new_role.value;
+
+                    try {
+                        const response = await fetch('/admin_manage_roles', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ user_id: userId, new_role: newRole })
+                        });
+
+                        const data = await response.json();
+                        displayFlashMessages(data.message, data.category);
+
+                        if (response.ok) {
+                            // Bei Erfolg: Benutzerliste neu laden, um Änderungen anzuzeigen
+                            loadUserList(); 
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Ändern der Rolle:', error);
+                        displayFlashMessages('Fehler beim Ändern der Rolle.', 'danger');
+                    }
+                });
+            });
+        }
+
+        // Funktion zum Hinzufügen von Event-Listenern für Lösch-Buttons
+        function addDeleteButtonListeners() {
+            document.querySelectorAll('.delete-user-btn').forEach(button => {
+                button.addEventListener('click', async function() {
+                    if (confirm('Sind Sie sicher, dass Sie diesen Benutzer löschen möchten?')) {
+                        const userId = this.dataset.userId;
+                        try {
+                            const response = await fetch('/admin_delete_user', {
+                                method: 'POST', // Oder DELETE, wenn du RESTful sein willst
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ user_id: userId })
+                            });
+
+                            const data = await response.json();
+                            displayFlashMessages(data.message, data.category);
+
+                            if (response.ok) {
+                                loadUserList(); // Benutzerliste aktualisieren
+                            }
+                        } catch (error) {
+                            console.error('Fehler beim Löschen des Benutzers:', error);
+                            displayFlashMessages('Fehler beim Löschen des Benutzers.', 'danger');
+                        }
+                    }
+                });
+            });
+        }
+
+
+        // Stelle sicher, dass die Funktionen aufgerufen werden, wenn das DOM geladen ist
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHeader(); // Lade den Header
+            loadUserList(); // Lade die Benutzerliste, wenn die Seite geladen wird
+        });
+
+        // Die displayFlashMessages Funktion aus deinem Login/Register Code
+        function displayFlashMessages(message, category) {
+            const flashContainer = document.getElementById('flash-messages');
+            flashContainer.innerHTML = ''; 
+            if (message) {
+                const div = document.createElement('div');
+                div.className = `flash-message ${category}`;
+                div.textContent = message;
+                flashContainer.appendChild(div);
+            }
+        }
+    </script>
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }
+
+            table,
+            th,
+            td {
+                border: 1px solid #ddd;
+            }
+
+            th,
+            td {
+                padding: 8px;
+                text-align: left;
+            }
+
+            th {
+                background-color: #f2f2f2;
+            }
+
+            select {
+                padding: 5px;
+                border-radius: 4px;
+            }
+        </style>
+    </main>
+    <footer>
+        <div id="footer-placeholder"></div>
+    </footer>
+
+    <script src="/js/wettkampfManagerJS"></script>
+    <script src="/js/wettkampfManagerAdmincenter"></script>
+</body>
+
+</html>

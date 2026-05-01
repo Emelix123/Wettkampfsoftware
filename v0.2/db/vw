@@ -1,0 +1,28 @@
+
+-- =====================================================
+-- VIEW: vw_Gesamt_Ergebnisse 
+-- (Bleibt, da sie einfach den finalen Score addiert)
+-- =====================================================
+CREATE OR REPLACE VIEW `vw_Gesamt_Ergebnisse` AS
+SELECT 
+    phw.Wettkampf_idWettkampf,
+    phw.Personen_idPersonen,
+    IFNULL(SUM(best_pro_geraet.MaxScore), 0) AS GesamtScore
+FROM Personen_has_Wettkampf phw
+LEFT JOIN (
+    SELECT 
+        Personen_idPersonen,
+        Wettkampf_idWettkampf,
+        Geraete_idGeraete,
+        MAX(Score) AS MaxScore
+    FROM Einzel_Ergebnis
+    WHERE Ist_Gueltig = 1 
+      AND Status = 'Freigegeben' 
+    GROUP BY Personen_idPersonen, Wettkampf_idWettkampf, Geraete_idGeraete
+) AS best_pro_geraet 
+  ON  phw.Personen_idPersonen   = best_pro_geraet.Personen_idPersonen
+  AND phw.Wettkampf_idWettkampf = best_pro_geraet.Wettkampf_idWettkampf
+GROUP BY 
+    phw.Wettkampf_idWettkampf, 
+    phw.Personen_idPersonen;
+SET FOREIGN_KEY_CHECKS = 1;

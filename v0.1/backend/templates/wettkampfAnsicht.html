@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wettkampf Ansicht</title>
+    <link rel="stylesheet" href="/css/wettkampfManagerStyle">
+    <link rel="stylesheet" href="/css/wettkampfAnsicht">
+</head>
+
+<body>
+    <header>
+        <div id="header-placeholder"></div>
+        <h1>Wettkampf Ansicht</h1>
+    </header>
+    <main>
+        <div class="container">
+
+            <h2>Wettkämpfe filtern</h2>
+            <div class="form-group">
+                <label for="wettkampfTagFilterSelect">Wettkampftag:</label>
+                <select id="wettkampfTagFilterSelect" class="form-control">
+                    <option value="">-- Bitte wählen --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="wettkampfFilterSelect">Wettkampf:</label>
+                <select id="wettkampfFilterSelect" class="form-control" disabled>
+                    <option value="">-- Bitte wählen --</option>
+                </select>
+            </div>
+            <div class="Button">
+                <button id="ladeErgebnisseBtn" class="btn btn-primary">Wettkampf anzeigen</button>
+            </div>
+            
+            <h2>Wettkampf Details</h2>
+            <div id="ergebnisAnzeigeBereich" class="ergebnis-bereich">
+                <!-- Hier erscheinen die Ergebnisse -->
+            </div>
+
+        </div>
+    </main>
+    <footer>
+        <div id="footer-placeholder"></div>
+    </footer>
+
+    <script src="/js/wettkampfManagerJS"></script>
+    <script src="/js/wettkampfAnsicht"></script>
+</body>
+
+</html>

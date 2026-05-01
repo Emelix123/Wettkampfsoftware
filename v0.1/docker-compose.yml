@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # --------------------
+  # Datenbank (MySQL)
+  # --------------------
+  db:
+    image: mysql:8.0 # Oder eine andere gewünschte MySQL-Version
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: wEtkAm!Leipizg2025!
+      MYSQL_DATABASE: wettkampfDB
+      MYSQL_USER: pythonUser
+      MYSQL_PASSWORD: pythonPassword
+    volumes:
+      - db_data:/var/lib/mysql # Persistenter Speicher für Datenbankdaten
+    ports:
+      # Optional: Port freigeben, um direkt auf die DB zuzugreifen (z.B. mit DBeaver)
+      # Nur für Entwicklung empfohlen!
+      - "3307:3306" # Host-Port 3307 auf Container-Port 3306 mappen
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------
+  # Backend (Flask App)
+  # --------------------
+  backend:
+    build: ./backend # Pfad zum Ordner mit Dockerfile und App-Code
+    container_name: flask_backend
+    restart: always
+    environment:
+      FLASK_APP: app.py
+      # Datenbank-Verbindungsinformationen für Flask
+      DB_HOST: db # Der Service-Name der Datenbank im Docker-Netzwerk
+      DB_USER: pythonUser # Muss mit MYSQL_USER oben übereinstimmen
+      DB_PASSWORD: pythonPassword # Muss mit MYSQL_PASSWORD oben übereinstimmen !! ÄNDERN !!
+      DB_NAME: wettkampfDB # Muss mit MYSQL_DATABASE oben übereinstimmen
+      FLASK_ENV: development # Oder 'production'
+      # Füge hier weitere Umgebungsvariablen für deine App hinzu
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app # Mountet deinen lokalen Code in den Container für Live-Änderungen
+    expose:
+      - "5000" # Port, auf dem Gunicorn/Flask im Container läuft (nur intern erreichbar)
+
+  # --------------------
+  # Webserver (Nginx) --> mit Angula 
+  # --------------------
+  nginx:
+    image: nginx:latest
+    container_name: nginx_webserver
+    restart: always
+    ports:
+      - "80:80" # Mappt Port 80 deines Laptops auf Port 80 im Nginx-Container
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+
+# --------------------
+# Volumes (Persistenter Speicher)
+# --------------------
+volumes:
+  db_data: # Named Volume für die MySQL-Daten

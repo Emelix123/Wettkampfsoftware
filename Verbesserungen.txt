@@ -1,0 +1,14 @@
+- Beim löschen und bearbeiten eines zweiten Ergebnisses wird das Falsche angezeigt dann z.B. 8 oder ähnliches
+- Der Export muss noch vereinfacht werden
+- Der Import muss noch vereinfacht werden und erweitert
+- Bei einer Ansicht nach Riege und die Riege hat verschiedene Wettkämpfe mit verschiedenen Disziplinen, was wird dann angezeigt
+- Variablen beim eintragen müssen noch die richtige Bezeichnung erhalten
+- Benutzerverwaltung, Admin kann sich selbst nicht killen
+- Logout nach Innaktivität?
+
+- Erweiterungen für Gruppen
+- Startreihenfolge bei Gruppen anpassen
+- Seitenbar mit Info welche Riege wo gerade sein sollte? 
+- Wenn nach Riege gesucht wird, muss Wettkampf Auswahl ignoriert werden (aber was passiert mit anderen Geräten die nicht in dem Wettkampf wären?)
+- Export anpassen Extra für WORD!
+- In die DB kann versuch z.B. 8 eingetragen werden obwohl das eigentlich nicht sein darf 

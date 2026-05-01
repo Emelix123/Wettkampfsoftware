@@ -1,0 +1,70 @@
+-- =====================================================
+-- BEISPIELDATEN
+-- =====================================================
+
+-- 1. Stammdaten
+INSERT INTO `Altersklasse` (`Kuerzel`, `Bezeichnung`, `Geschlecht`) VALUES
+('U18M',  'Under 18 Männlich',  'm'),
+('Offen', 'Offen für alle',     'alle');
+
+INSERT INTO `Wettkampf_Tag` (`Name`, `Wettkampf_Datum`) VALUES
+('Sommerturnfest 2024', '2024-07-20');
+
+-- 2. Die "Gehirne" für Python
+INSERT INTO `Berechnungs_Art` (`Regel_Kuerzel`, `Beschreibung`) VALUES
+('LA_DIREKT',       'Wert * Faktor + Offset'),
+('TURNEN_OLYMPIC',  'Schnitt E-Noten (ohne Min/Max) + D-Note - Abzug');
+
+-- 3. Wettkämpfe und Geräte
+INSERT INTO `Wettkampf` (`idWettkampf`, `Wettkampf_Nr`, `Name`, `Altersklasse_id`, `Status`, `Wettkampf_Tag_idWettkampf_Tag`) VALUES
+(1, 101, 'Mehrkampf Leichtathletik', 1, 'Aktiv', 1),
+(2, 102, 'Gerätturnen Finale',       2, 'Aktiv', 1);
+
+INSERT INTO `Geraete` (`idGeraete`, `Name`, `Einheit`) VALUES
+(1, 'Weitsprung', 'm'),
+(2, 'Reck',       'Pkt');
+
+-- 4. Setup: Hier definieren wir die Regeln und die Anzahl der Richter!
+INSERT INTO `Geraete_has_Wettkampf` 
+(`idGeraete_Wettkampf`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Anzahl_Versuche`, `Berechnungs_Art_id`, `Score_Faktor`, `Erwartete_Kampfrichter`) VALUES
+(1, 1, 1, 3, 1, 1.0, 1), -- Weitsprung: 1 Richter reicht
+(2, 2, 2, 1, 2, 1.0, 3); -- Reck: Wir warten auf 3 Richter!
+
+-- 5. User und Anmeldung
+INSERT INTO `Personen` (`idPersonen`, `Vorname`, `Nachname`) VALUES (1, 'Max', 'Mustermann');
+INSERT INTO `user` (`id`, `username`, `email`, `password_hash`, `role`) VALUES 
+(10, 'richter_a', 'a@test.de', 'hash', 'kampfrichter'),
+(11, 'richter_b', 'b@test.de', 'hash', 'kampfrichter'),
+(12, 'richter_c', 'c@test.de', 'hash', 'kampfrichter');
+
+INSERT INTO `Personen_has_Wettkampf` (`Personen_idPersonen`, `Wettkampf_idWettkampf`) VALUES (1, 2);
+
+-- -----------------------------------------------------
+-- BEISPIEL-DURCHLAUF TURNEN (Live-Szenario)
+-- -----------------------------------------------------
+
+-- A. Der Turner betritt die Matte: Leeres Ergebnis-Objekt wird erstellt
+INSERT INTO `Einzel_Ergebnis` (`idEinzel_Ergebnis`, `Personen_idPersonen`, `Wettkampf_idWettkampf`, `Geraete_idGeraete`, `Status`) 
+VALUES (500, 1, 2, 2, 'In_Bewertung');
+
+-- B. Richter A sendet seine Wertung
+INSERT INTO `Kampfrichter_Wertung` (`idWertung`, `Einzel_Ergebnis_id`, `Kampfrichter_user_id`) VALUES (1, 500, 10);
+INSERT INTO `Kampfrichter_Wertung_Detail` (`Wertung_id`, `Kriterium`, `Wert`) VALUES 
+(1, 'D_Note', 4.0), (1, 'E_Note', 8.5);
+
+-- C. Richter B sendet seine Wertung
+INSERT INTO `Kampfrichter_Wertung` (`idWertung`, `Einzel_Ergebnis_id`, `Kampfrichter_user_id`) VALUES (2, 500, 11);
+INSERT INTO `Kampfrichter_Wertung_Detail` (`Wertung_id`, `Kriterium`, `Wert`) VALUES 
+(2, 'D_Note', 4.0), (2, 'E_Note', 8.7);
+
+-- D. Richter C sendet seine Wertung
+INSERT INTO `Kampfrichter_Wertung` (`idWertung`, `Einzel_Ergebnis_id`, `Kampfrichter_user_id`) VALUES (3, 500, 12);
+INSERT INTO `Kampfrichter_Wertung_Detail` (`Wertung_id`, `Kriterium`, `Wert`) VALUES 
+(3, 'D_Note', 4.0), (3, 'E_Note', 8.1);
+
+-- E. PYTHON LOGIK JETZT:
+-- 1. COUNT(*) von Kampfrichter_Wertung für ID 500 ist nun 3.
+-- 2. Erwartete_Kampfrichter aus Geraete_has_Wettkampf ist 3.
+-- 3. MATCH! Python rechnet: D=4.0, E-Schnitt=(8.1+8.5+8.7)/3 = 8.43
+-- 4. Python führt Update aus:
+UPDATE `Einzel_Ergebnis` SET `Score` = 12.433, `Status` = 'Freigegeben' WHERE `idEinzel_Ergebnis` = 500;
