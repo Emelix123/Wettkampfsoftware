@@ -4,36 +4,68 @@
 <div class="flex items-center mb-4 gap-3 flex-wrap">
   <a href="/tage/{{ wk.Wettkampf_Tag_id }}" class="text-sm text-brand-600 hover:underline">← {{ wk.tag.Name }}</a>
 </div>
-<div class="card mb-4 flex flex-wrap items-center gap-3">
-  <div class="flex-1">
-    <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
-    <div class="text-slate-500 text-sm">{{ wk.altersklasse.Kuerzel }} ({{ wk.altersklasse.Bezeichnung }}) · Typ: {{ wk.Typ }}{% if wk.Mannschaft_Groesse %} · Top {{ wk.Mannschaft_Groesse }} pro Team{% endif %}</div>
-  </div>
-  <div class="flex gap-2 items-center">
-    {% if user.role == 'admin' %}
-    <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/status" class="flex gap-1">
-      <select class="input" name="Status">
-        {% for s in ['Entwurf','Anmeldung','Aktiv','Abgeschlossen','Archiviert'] %}
-          <option value="{{ s }}" {% if wk.Status==s %}selected{% endif %}>{{ s }}</option>
-        {% endfor %}
-      </select>
-      <button class="btn btn-ghost">setzen</button>
-    </form>
-    {% else %}
-    <span class="badge">{{ wk.Status }}</span>
-    {% endif %}
-    <a class="btn btn-primary" href="/anmeldung/{{ wk.idWettkampf }}">📝 Anmeldung</a>
-    <a class="btn btn-primary" href="/eingabe/{{ wk.idWettkampf }}">⌨️ Eingabe</a>
-    <a class="btn btn-ghost" href="/live/wettkampf/{{ wk.idWettkampf }}" target="_blank">📺 Live</a>
-    <details class="relative">
-      <summary class="btn btn-ghost cursor-pointer">📄 PDF</summary>
-      <div class="absolute right-0 mt-2 bg-white border border-slate-200 rounded shadow-md z-10 p-2 flex flex-col gap-1 min-w-max">
-        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/startliste.pdf" target="_blank">Startliste</a>
-        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/ergebnisse.pdf" target="_blank">Ergebnisse</a>
-        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf" target="_blank">Urkunden</a>
+
+<div class="card mb-4">
+  {% if request.query_params.get('edit_wk') %}
+  <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/update" class="space-y-2">
+    <h2 class="text-xl font-bold">Wettkampf bearbeiten</h2>
+    <div class="grid md:grid-cols-2 gap-2">
+      <div><label class="label">Wettkampf-Nr</label><input class="input" type="number" name="Wettkampf_Nr" value="{{ wk.Wettkampf_Nr }}" required></div>
+      <div>
+        <label class="label">Typ</label>
+        <select class="input" name="Typ">
+          {% for t in ['Einzel','Mannschaft','Kombination'] %}<option value="{{ t }}" {% if wk.Typ==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
       </div>
-    </details>
+      <div class="md:col-span-2"><label class="label">Name</label><input class="input" name="Name" value="{{ wk.Name }}" required></div>
+      <div>
+        <label class="label">Altersklasse</label>
+        <select class="input" name="Altersklasse_id">
+          {% for a in altersklassen %}<option value="{{ a.idAltersklasse }}" {% if wk.Altersklasse_id==a.idAltersklasse %}selected{% endif %}>{{ a.Kuerzel }} — {{ a.Bezeichnung }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label class="label">Mannschaftsgroesse (nur Team)</label><input class="input" type="number" name="Mannschaft_Groesse" value="{{ wk.Mannschaft_Groesse or '' }}" placeholder="leer = unbegrenzt"></div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary">speichern</button>
+      <a class="btn btn-ghost" href="/wettkampf/{{ wk.idWettkampf }}">abbrechen</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="flex flex-wrap items-center gap-3">
+    <div class="flex-1">
+      <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
+      <div class="text-slate-500 text-sm">{{ wk.altersklasse.Kuerzel }} ({{ wk.altersklasse.Bezeichnung }}) · Typ: {{ wk.Typ }}{% if wk.Mannschaft_Groesse %} · Top {{ wk.Mannschaft_Groesse }} pro Team{% endif %}</div>
+    </div>
+    <div class="flex gap-2 items-center flex-wrap">
+      {% if user.role == 'admin' %}
+      <a class="btn btn-ghost" href="?edit_wk=1">bearbeiten</a>
+      <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/status" class="flex gap-1">
+        <select class="input" name="Status">
+          {% for s in ['Entwurf','Anmeldung','Aktiv','Abgeschlossen','Archiviert'] %}
+            <option value="{{ s }}" {% if wk.Status==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-ghost">setzen</button>
+      </form>
+      {% else %}
+      <span class="badge">{{ wk.Status }}</span>
+      {% endif %}
+      <a class="btn btn-primary" href="/anmeldung/{{ wk.idWettkampf }}">📝 Anmeldung</a>
+      <a class="btn btn-primary" href="/eingabe/{{ wk.idWettkampf }}">⌨️ Eingabe</a>
+      <a class="btn btn-ghost" href="/live/wettkampf/{{ wk.idWettkampf }}" target="_blank">📺 Live</a>
+      <details class="relative">
+        <summary class="btn btn-ghost cursor-pointer">📄 PDF</summary>
+        <div class="absolute right-0 mt-2 bg-white border border-slate-200 rounded shadow-md z-10 p-2 flex flex-col gap-1 min-w-max">
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/startliste.pdf" target="_blank">Startliste</a>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/ergebnisse.pdf" target="_blank">Ergebnisse</a>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf" target="_blank">Urkunden (alle)</a>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf?top=3" target="_blank">Urkunden Top 3</a>
+        </div>
+      </details>
+    </div>
   </div>
+  {% endif %}
 </div>
 
 <div class="grid lg:grid-cols-2 gap-4">
@@ -44,21 +76,53 @@
     <table class="table">
       <thead><tr><th>#</th><th>Geraet</th><th>Berechnung</th><th>Versuche</th><th>Richter</th><th>Faktor</th><th>Offset</th><th></th></tr></thead>
       <tbody>
-        {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
-        <tr>
-          <td>{{ g.Reihenfolge }}</td>
-          <td class="font-medium">{{ g.geraet.Name }}</td>
-          <td><code class="text-xs">{{ g.berechnung.Regel_Kuerzel }}</code></td>
-          <td>{{ g.Anzahl_Versuche }}</td>
-          <td>{{ g.Erwartete_Kampfrichter }}</td>
-          <td>{{ g.Score_Faktor }}</td>
-          <td>{{ g.Score_Offset }}</td>
-          <td class="text-right">
-            {% if user.role == 'admin' %}
-            <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/delete" onsubmit="return confirm('Geraet entfernen?')"><button class="btn btn-danger">x</button></form>
-            {% endif %}
-          </td>
-        </tr>
+        {% set sorted_geraete = wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+        {% for g in sorted_geraete %}
+          {% if edit_ghw == g.idGhW %}
+          <tr>
+            <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/update">
+            <td>{{ g.Reihenfolge }}</td>
+            <td class="font-medium">{{ g.geraet.Name }}</td>
+            <td>
+              <select class="input" name="Berechnungs_Art_id">
+                {% for b in berechnungen %}<option value="{{ b.idBerechnungs_Art }}" {% if g.Berechnungs_Art_id==b.idBerechnungs_Art %}selected{% endif %}>{{ b.Bezeichnung }}</option>{% endfor %}
+              </select>
+            </td>
+            <td><input class="input" type="number" name="Anzahl_Versuche" value="{{ g.Anzahl_Versuche }}" min="1"></td>
+            <td><input class="input" type="number" name="Erwartete_Kampfrichter" value="{{ g.Erwartete_Kampfrichter }}" min="1"></td>
+            <td><input class="input" type="number" step="0.0001" name="Score_Faktor" value="{{ g.Score_Faktor }}"></td>
+            <td><input class="input" type="number" step="0.0001" name="Score_Offset" value="{{ g.Score_Offset }}"></td>
+            <td class="text-right whitespace-nowrap">
+              <button class="btn btn-primary">✓</button>
+              <a class="btn btn-ghost" href="/wettkampf/{{ wk.idWettkampf }}">x</a>
+            </td>
+            </form>
+          </tr>
+          {% else %}
+          <tr>
+            <td>
+              {{ g.Reihenfolge }}
+              {% if user.role == 'admin' %}
+              <span class="inline-flex flex-col">
+                {% if not loop.first %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline"><input type="hidden" name="direction" value="up"><button class="btn btn-ghost text-xs px-1 py-0">▲</button></form>{% endif %}
+                {% if not loop.last %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline"><input type="hidden" name="direction" value="down"><button class="btn btn-ghost text-xs px-1 py-0">▼</button></form>{% endif %}
+              </span>
+              {% endif %}
+            </td>
+            <td class="font-medium">{{ g.geraet.Name }}</td>
+            <td><code class="text-xs">{{ g.berechnung.Regel_Kuerzel }}</code></td>
+            <td>{{ g.Anzahl_Versuche }}</td>
+            <td>{{ g.Erwartete_Kampfrichter }}</td>
+            <td>{{ g.Score_Faktor }}</td>
+            <td>{{ g.Score_Offset }}</td>
+            <td class="text-right whitespace-nowrap">
+              {% if user.role == 'admin' %}
+              <a class="btn btn-ghost" href="?edit_ghw={{ g.idGhW }}">bearbeiten</a>
+              <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/delete" class="inline" onsubmit="return confirm('Geraet entfernen? (loescht auch alle Ergebnisse fuer dieses Geraet)')"><button class="btn btn-danger">x</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
         {% else %}
         <tr><td colspan="8" class="text-slate-400 italic text-center">Noch keine Geraete zugeordnet.</td></tr>
         {% endfor %}
@@ -89,7 +153,7 @@
         <tr>
           <td class="font-medium">{{ r.Bezeichnung }}</td>
           <td>{{ r.Start_Zeit or '—' }}</td>
-          <td>{{ r.idRiege | string + ': ' if false else '' }}{{ wk.anmeldungen|selectattr('Riege_id','equalto', r.idRiege)|list|length }}</td>
+          <td>{{ wk.anmeldungen|selectattr('Riege_id','equalto', r.idRiege)|list|length }}</td>
           <td class="text-right">
             {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete"><button class="btn btn-danger">x</button></form>{% endif %}
           </td>

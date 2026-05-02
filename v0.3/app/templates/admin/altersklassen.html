@@ -31,15 +31,35 @@
       <thead><tr><th>Kuerzel</th><th>Bezeichnung</th><th>Alter</th><th>Geschl.</th><th></th></tr></thead>
       <tbody>
         {% for a in items %}
-        <tr>
-          <td><span class="badge">{{ a.Kuerzel }}</span></td>
-          <td>{{ a.Bezeichnung }}</td>
-          <td class="text-slate-500">{{ a.Alter_Von or '—' }}–{{ a.Alter_Bis or '—' }}</td>
-          <td>{{ a.Geschlecht }}</td>
-          <td class="text-right">
-            <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/delete" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
-          </td>
-        </tr>
+          {% if edit_id == a.idAltersklasse %}
+          <tr>
+            <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/update">
+            <td><input class="input" name="Kuerzel" value="{{ a.Kuerzel }}" maxlength="15" required></td>
+            <td><input class="input" name="Bezeichnung" value="{{ a.Bezeichnung }}" required></td>
+            <td><div class="flex gap-1"><input class="input" type="number" name="Alter_Von" value="{{ a.Alter_Von or '' }}" placeholder="von"><input class="input" type="number" name="Alter_Bis" value="{{ a.Alter_Bis or '' }}" placeholder="bis"></div></td>
+            <td>
+              <select class="input" name="Geschlecht">
+                {% for g in ['alle','m','w','d'] %}<option value="{{ g }}" {% if a.Geschlecht==g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+              </select>
+            </td>
+            <td class="text-right whitespace-nowrap">
+              <button class="btn btn-primary">speichern</button>
+              <a class="btn btn-ghost" href="/admin/altersklassen">abbrechen</a>
+            </td>
+            </form>
+          </tr>
+          {% else %}
+          <tr>
+            <td><span class="badge">{{ a.Kuerzel }}</span></td>
+            <td>{{ a.Bezeichnung }}</td>
+            <td class="text-slate-500">{{ a.Alter_Von or '—' }}–{{ a.Alter_Bis or '—' }}</td>
+            <td>{{ a.Geschlecht }}</td>
+            <td class="text-right whitespace-nowrap">
+              <a href="?edit={{ a.idAltersklasse }}" class="btn btn-ghost">bearbeiten</a>
+              <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/delete" class="inline" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+            </td>
+          </tr>
+          {% endif %}
         {% else %}<tr><td colspan="5" class="text-center text-slate-400 italic">Noch keine.</td></tr>{% endfor %}
       </tbody>
     </table>

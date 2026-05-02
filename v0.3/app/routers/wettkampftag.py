@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from auth import require_user
 from database import get_db
 from models import WettkampfTag
-from views import render, flash
+from views import render, flash, safe_delete
 
 router = APIRouter(prefix="/tage")
 
@@ -37,15 +37,31 @@ def create_tag(request: Request,
     return RedirectResponse("/tage", status_code=303)
 
 
+@router.post("/{tid}/update")
+def update_tag(request: Request, tid: int,
+               Name: str = Form(...),
+               Wettkampf_Datum: str = Form(...),
+               Ort: str = Form(""),
+               Veranstalter: str = Form(""),
+               db: Session = Depends(get_db),
+               user=Depends(require_user("admin"))):
+    obj = db.get(WettkampfTag, tid)
+    if obj:
+        obj.Name = Name.strip()
+        obj.Wettkampf_Datum = date.fromisoformat(Wettkampf_Datum)
+        obj.Ort = Ort or None
+        obj.Veranstalter = Veranstalter or None
+        db.commit()
+        flash(request, "success", "Wettkampftag aktualisiert.")
+    return RedirectResponse(f"/tage/{tid}", status_code=303)
+
+
 @router.post("/{tid}/delete")
 def delete_tag(request: Request, tid: int,
                db: Session = Depends(get_db),
                user=Depends(require_user("admin"))):
     obj = db.get(WettkampfTag, tid)
-    if obj:
-        db.delete(obj)
-        db.commit()
-        flash(request, "success", "Wettkampftag geloescht.")
+    safe_delete(request, db, obj, name=f"Wettkampftag '{obj.Name}'" if obj else None)
     return RedirectResponse("/tage", status_code=303)
 
 

@@ -1,7 +1,7 @@
 from datetime import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, Query, Request  # noqa
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from models import (
     Wettkampf, WettkampfTag, Geraete, BerechnungsArt, GeraeteHasWettkampf,
     Riege, Mannschaft, Verein, PersonenHasWettkampf,
 )
-from views import render, flash
+from views import render, flash, safe_delete
 
 router = APIRouter()
 
@@ -39,8 +39,11 @@ def create_wettkampf(request: Request, tag_id: int = Query(...),
 
 
 @router.get("/wettkampf/{wid}")
-def show_wettkampf(request: Request, wid: int, db: Session = Depends(get_db),
+def show_wettkampf(request: Request, wid: int,
+                   edit_ghw: Optional[int] = Query(None),
+                   db: Session = Depends(get_db),
                    user=Depends(require_user())):
+    from models import Altersklasse
     wk = db.get(Wettkampf, wid)
     if not wk:
         flash(request, "error", "Wettkampf nicht gefunden.")
@@ -48,6 +51,7 @@ def show_wettkampf(request: Request, wid: int, db: Session = Depends(get_db),
     geraete_alle = db.query(Geraete).order_by(Geraete.Name).all()
     berechnungen = db.query(BerechnungsArt).order_by(BerechnungsArt.Bezeichnung).all()
     vereine = db.query(Verein).order_by(Verein.Kuerzel).all()
+    altersklassen = db.query(Altersklasse).order_by(Altersklasse.Kuerzel).all()
 
     anmeldungen = (
         db.query(PersonenHasWettkampf)
@@ -57,7 +61,8 @@ def show_wettkampf(request: Request, wid: int, db: Session = Depends(get_db),
     )
     return render(request, db, "wettkampf/wettkampf_detail.html",
                   wk=wk, geraete_alle=geraete_alle, berechnungen=berechnungen,
-                  vereine=vereine, anmeldungen=anmeldungen)
+                  vereine=vereine, anmeldungen=anmeldungen,
+                  altersklassen=altersklassen, edit_ghw=edit_ghw)
 
 
 @router.post("/wettkampf/{wid}/status")
@@ -72,14 +77,33 @@ def set_status(request: Request, wid: int, Status: str = Form(...),
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 
+@router.post("/wettkampf/{wid}/update")
+def update_wettkampf(request: Request, wid: int,
+                     Wettkampf_Nr: int = Form(...),
+                     Name: str = Form(...),
+                     Altersklasse_id: int = Form(...),
+                     Typ: str = Form("Einzel"),
+                     Mannschaft_Groesse: str = Form(""),
+                     db: Session = Depends(get_db),
+                     user=Depends(require_user("admin"))):
+    wk = db.get(Wettkampf, wid)
+    if wk:
+        wk.Wettkampf_Nr = Wettkampf_Nr
+        wk.Name = Name.strip()
+        wk.Altersklasse_id = Altersklasse_id
+        wk.Typ = Typ
+        wk.Mannschaft_Groesse = int(Mannschaft_Groesse) if Mannschaft_Groesse else None
+        db.commit()
+        flash(request, "success", "Wettkampf aktualisiert.")
+    return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
+
+
 @router.post("/wettkampf/{wid}/delete")
 def delete_wettkampf(request: Request, wid: int, db: Session = Depends(get_db),
                      user=Depends(require_user("admin"))):
     wk = db.get(Wettkampf, wid)
     tid = wk.Wettkampf_Tag_id if wk else None
-    if wk:
-        db.delete(wk); db.commit()
-        flash(request, "success", "Wettkampf geloescht.")
+    safe_delete(request, db, wk, name=f"Wettkampf '{wk.Name}'" if wk else None)
     return RedirectResponse(f"/tage/{tid}" if tid else "/tage", status_code=303)
 
 
@@ -109,14 +133,66 @@ def add_geraet(request: Request, wid: int,
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 
+@router.post("/wettkampf/{wid}/geraete/{ghw}/update")
+def update_geraet(request: Request, wid: int, ghw: int,
+                  Berechnungs_Art_id: int = Form(...),
+                  Anzahl_Versuche: int = Form(1),
+                  Erwartete_Kampfrichter: int = Form(1),
+                  Score_Faktor: float = Form(1.0),
+                  Score_Offset: float = Form(0.0),
+                  db: Session = Depends(get_db),
+                  user=Depends(require_user("admin"))):
+    obj = db.get(GeraeteHasWettkampf, ghw)
+    if obj and obj.Wettkampf_id == wid:
+        obj.Berechnungs_Art_id = Berechnungs_Art_id
+        obj.Anzahl_Versuche = Anzahl_Versuche
+        obj.Erwartete_Kampfrichter = Erwartete_Kampfrichter
+        obj.Score_Faktor = Score_Faktor
+        obj.Score_Offset = Score_Offset
+        db.commit()
+        flash(request, "success", f"Geraet '{obj.geraet.Name}' aktualisiert.")
+    return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
+
+
+@router.post("/wettkampf/{wid}/geraete/{ghw}/move")
+def move_geraet(request: Request, wid: int, ghw: int,
+                direction: str = Form(...),
+                db: Session = Depends(get_db),
+                user=Depends(require_user("admin"))):
+    """direction = 'up' oder 'down' — tauscht Reihenfolge mit Nachbar."""
+    obj = db.get(GeraeteHasWettkampf, ghw)
+    if not obj or obj.Wettkampf_id != wid:
+        return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
+    others = (
+        db.query(GeraeteHasWettkampf)
+        .filter_by(Wettkampf_id=wid)
+        .order_by(GeraeteHasWettkampf.Reihenfolge)
+        .all()
+    )
+    # Reihenfolge normalisieren falls Lücken
+    for i, g in enumerate(others, 1):
+        g.Reihenfolge = i
+    db.commit()
+    idx = next(i for i, g in enumerate(others) if g.idGhW == ghw)
+    if direction == "up" and idx > 0:
+        others[idx].Reihenfolge, others[idx-1].Reihenfolge = (
+            others[idx-1].Reihenfolge, others[idx].Reihenfolge,
+        )
+    elif direction == "down" and idx < len(others) - 1:
+        others[idx].Reihenfolge, others[idx+1].Reihenfolge = (
+            others[idx+1].Reihenfolge, others[idx].Reihenfolge,
+        )
+    db.commit()
+    return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
+
+
 @router.post("/wettkampf/{wid}/geraete/{ghw}/delete")
 def del_geraet(request: Request, wid: int, ghw: int,
                db: Session = Depends(get_db),
                user=Depends(require_user("admin"))):
     obj = db.get(GeraeteHasWettkampf, ghw)
     if obj and obj.Wettkampf_id == wid:
-        db.delete(obj); db.commit()
-        flash(request, "success", "Geraet entfernt.")
+        safe_delete(request, db, obj, name=f"Geraet '{obj.geraet.Name}'")
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 

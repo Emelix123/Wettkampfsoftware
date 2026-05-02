@@ -19,16 +19,31 @@
       <thead><tr><th>Kuerzel</th><th>Name</th><th>Ort</th><th></th></tr></thead>
       <tbody>
         {% for v in items %}
-        <tr>
-          <td><span class="badge">{{ v.Kuerzel }}</span></td>
-          <td>{{ v.Name }}</td>
-          <td class="text-slate-500">{{ v.Ort or '—' }}</td>
-          <td class="text-right">
-            <form method="post" action="/admin/vereine/{{ v.idVerein }}/delete" onsubmit="return confirm('Verein wirklich loeschen?')">
-              <button class="btn btn-danger">loeschen</button>
+          {% if edit_id == v.idVerein %}
+          <tr>
+            <form method="post" action="/admin/vereine/{{ v.idVerein }}/update">
+            <td><input class="input" name="Kuerzel" value="{{ v.Kuerzel }}" maxlength="10" required></td>
+            <td><input class="input" name="Name" value="{{ v.Name }}" required></td>
+            <td><input class="input" name="Ort" value="{{ v.Ort or '' }}"></td>
+            <td class="text-right whitespace-nowrap">
+              <button class="btn btn-primary">speichern</button>
+              <a href="/admin/vereine" class="btn btn-ghost">abbrechen</a>
+            </td>
             </form>
-          </td>
-        </tr>
+          </tr>
+          {% else %}
+          <tr>
+            <td><span class="badge">{{ v.Kuerzel }}</span></td>
+            <td>{{ v.Name }}</td>
+            <td class="text-slate-500">{{ v.Ort or '—' }}</td>
+            <td class="text-right whitespace-nowrap">
+              <a href="?edit={{ v.idVerein }}" class="btn btn-ghost">bearbeiten</a>
+              <form method="post" action="/admin/vereine/{{ v.idVerein }}/delete" class="inline" onsubmit="return confirm('Verein wirklich loeschen?')">
+                <button class="btn btn-danger">loeschen</button>
+              </form>
+            </td>
+          </tr>
+          {% endif %}
         {% else %}
         <tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Vereine.</td></tr>
         {% endfor %}

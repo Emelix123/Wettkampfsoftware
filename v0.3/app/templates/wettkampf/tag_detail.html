@@ -5,12 +5,33 @@
   <a href="/tage" class="text-sm text-brand-600 hover:underline">← Wettkampftage</a>
 </div>
 <div class="card mb-4">
-  <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
-  <div class="text-slate-500 mt-1">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+  {% if request.query_params.get('edit') %}
+  <form method="post" action="/tage/{{ tag.idWettkampf_Tag }}/update" class="space-y-2">
+    <h2 class="text-xl font-bold">Wettkampftag bearbeiten</h2>
+    <div class="grid md:grid-cols-2 gap-2">
+      <div><label class="label">Name</label><input class="input" name="Name" value="{{ tag.Name }}" required></div>
+      <div><label class="label">Datum</label><input class="input" type="date" name="Wettkampf_Datum" value="{{ tag.Wettkampf_Datum }}" required></div>
+      <div><label class="label">Ort</label><input class="input" name="Ort" value="{{ tag.Ort or '' }}"></div>
+      <div><label class="label">Veranstalter</label><input class="input" name="Veranstalter" value="{{ tag.Veranstalter or '' }}"></div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary">speichern</button>
+      <a class="btn btn-ghost" href="/tage/{{ tag.idWettkampf_Tag }}">abbrechen</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="flex justify-between items-start">
+    <div>
+      <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
+      <div class="text-slate-500 mt-1">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+    </div>
+    {% if user.role == 'admin' %}<a class="btn btn-ghost" href="?edit=1">bearbeiten</a>{% endif %}
+  </div>
   <div class="mt-3 flex gap-2">
     <a class="btn btn-ghost" href="/live/tag/{{ tag.idWettkampf_Tag }}">📺 Live-Ansicht</a>
     <a class="btn btn-ghost" href="/export/tag/{{ tag.idWettkampf_Tag }}/ergebnisse.pdf" target="_blank">📄 Gesamt-PDF</a>
   </div>
+  {% endif %}
 </div>
 
 <h2 class="text-lg font-semibold mb-3">Wettkaempfe</h2>

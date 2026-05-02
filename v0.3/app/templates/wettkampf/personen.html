@@ -1,7 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Personen{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Personen / Athleten</h1>
+<div class="flex flex-wrap items-center mb-4 gap-3">
+  <h1 class="text-2xl font-bold">Personen / Athleten</h1>
+  <form method="get" class="ml-auto flex gap-2">
+    <input class="input" name="q" value="{{ q }}" placeholder="Suche nach Name…">
+    <button class="btn btn-ghost">suchen</button>
+    {% if q %}<a class="btn btn-ghost" href="/personen">x</a>{% endif %}
+  </form>
+  <a class="btn btn-primary" href="/personen/import">📥 Massen-Import</a>
+</div>
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/personen" class="card space-y-3">
     <h2 class="font-semibold">Neue Person</h2>
@@ -31,19 +39,48 @@
       <thead><tr><th>Nachname</th><th>Vorname</th><th>Geburtsdatum</th><th>Verein</th><th>Geschlecht</th><th></th></tr></thead>
       <tbody>
         {% for p in items %}
-        <tr>
-          <td class="font-medium">{{ p.Nachname }}</td>
-          <td>{{ p.Vorname }}</td>
-          <td>{{ p.Geburtsdatum or '—' }}</td>
-          <td>{{ p.verein.Kuerzel if p.verein else '—' }}</td>
-          <td>{{ p.Geschlecht or '—' }}</td>
-          <td class="text-right">
-            {% if user.role == 'admin' %}
-            <form method="post" action="/personen/{{ p.idPersonen }}/delete" onsubmit="return confirm('Person wirklich loeschen? (Alle Anmeldungen werden mitgeloescht)')"><button class="btn btn-danger">loeschen</button></form>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}<tr><td colspan="6" class="text-center text-slate-400 italic">Noch keine Personen.</td></tr>{% endfor %}
+          {% if edit_id == p.idPersonen %}
+          <tr>
+            <form method="post" action="/personen/{{ p.idPersonen }}/update">
+            <td><input class="input" name="Nachname" value="{{ p.Nachname }}" required></td>
+            <td><input class="input" name="Vorname" value="{{ p.Vorname }}" required></td>
+            <td><input class="input" type="date" name="Geburtsdatum" value="{{ p.Geburtsdatum or '' }}"></td>
+            <td>
+              <select class="input" name="Verein_id">
+                <option value="">—</option>
+                {% for v in vereine %}<option value="{{ v.idVerein }}" {% if p.Verein_id==v.idVerein %}selected{% endif %}>{{ v.Kuerzel }}</option>{% endfor %}
+              </select>
+            </td>
+            <td>
+              <select class="input" name="Geschlecht">
+                <option value="">—</option>
+                {% for g in ['m','w','d'] %}<option value="{{ g }}" {% if p.Geschlecht==g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+              </select>
+            </td>
+            <td class="text-right whitespace-nowrap">
+              <button class="btn btn-primary">speichern</button>
+              <a class="btn btn-ghost" href="/personen">abbrechen</a>
+            </td>
+            </form>
+          </tr>
+          {% else %}
+          <tr>
+            <td class="font-medium">{{ p.Nachname }}</td>
+            <td>{{ p.Vorname }}</td>
+            <td>{{ p.Geburtsdatum or '—' }}</td>
+            <td>{{ p.verein.Kuerzel if p.verein else '—' }}</td>
+            <td>{{ p.Geschlecht or '—' }}</td>
+            <td class="text-right whitespace-nowrap">
+              {% if user.role in ('admin','tisch') %}
+              <a href="?edit={{ p.idPersonen }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-ghost">bearbeiten</a>
+              {% endif %}
+              {% if user.role == 'admin' %}
+              <form method="post" action="/personen/{{ p.idPersonen }}/delete" class="inline" onsubmit="return confirm('Person wirklich loeschen? (Alle Anmeldungen werden mitgeloescht)')"><button class="btn btn-danger">loeschen</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        {% else %}<tr><td colspan="6" class="text-center text-slate-400 italic">Keine Personen gefunden.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>

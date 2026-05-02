@@ -28,14 +28,33 @@
       <thead><tr><th>Kuerzel</th><th>Bezeichnung</th><th>Beschreibung</th><th></th></tr></thead>
       <tbody>
         {% for b in items %}
-        <tr>
-          <td><code>{{ b.Regel_Kuerzel }}</code></td>
-          <td>{{ b.Bezeichnung }}</td>
-          <td class="text-slate-500">{{ b.Beschreibung or '—' }}</td>
-          <td class="text-right">
-            <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/delete" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
-          </td>
-        </tr>
+          {% if edit_id == b.idBerechnungs_Art %}
+          <tr>
+            <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/update">
+            <td>
+              <select class="input" name="Regel_Kuerzel">
+                {% for code in registry_codes %}<option value="{{ code }}" {% if b.Regel_Kuerzel==code %}selected{% endif %}>{{ code }}</option>{% endfor %}
+              </select>
+            </td>
+            <td><input class="input" name="Bezeichnung" value="{{ b.Bezeichnung }}" required></td>
+            <td><input class="input" name="Beschreibung" value="{{ b.Beschreibung or '' }}"></td>
+            <td class="text-right whitespace-nowrap">
+              <button class="btn btn-primary">speichern</button>
+              <a class="btn btn-ghost" href="/admin/berechnungen">abbrechen</a>
+            </td>
+            </form>
+          </tr>
+          {% else %}
+          <tr>
+            <td><code>{{ b.Regel_Kuerzel }}</code></td>
+            <td>{{ b.Bezeichnung }}</td>
+            <td class="text-slate-500">{{ b.Beschreibung or '—' }}</td>
+            <td class="text-right whitespace-nowrap">
+              <a href="?edit={{ b.idBerechnungs_Art }}" class="btn btn-ghost">bearbeiten</a>
+              <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/delete" class="inline" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+            </td>
+          </tr>
+          {% endif %}
         {% else %}<tr><td colspan="4" class="text-center text-slate-400 italic">Noch keine.</td></tr>{% endfor %}
       </tbody>
     </table>

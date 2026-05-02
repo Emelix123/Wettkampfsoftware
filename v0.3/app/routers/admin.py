@@ -1,5 +1,7 @@
 """Stammdaten-Verwaltung (nur Admin)."""
-from fastapi import APIRouter, Depends, Form, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -24,9 +26,10 @@ def admin_home(request: Request, db: Session = Depends(get_db)):
 # ---------------- Vereine ----------------------------------------------------
 
 @router.get("/vereine")
-def vereine(request: Request, db: Session = Depends(get_db)):
+def vereine(request: Request, edit: Optional[int] = Query(None),
+            db: Session = Depends(get_db)):
     items = db.query(Verein).order_by(Verein.Kuerzel).all()
-    return render(request, db, "admin/vereine.html", items=items)
+    return render(request, db, "admin/vereine.html", items=items, edit_id=edit)
 
 
 @router.post("/vereine")
@@ -40,6 +43,20 @@ def vereine_create(request: Request,
     return RedirectResponse("/admin/vereine", status_code=303)
 
 
+@router.post("/vereine/{vid}/update")
+def vereine_update(request: Request, vid: int,
+                   Kuerzel: str = Form(...), Name: str = Form(...),
+                   Ort: str = Form(""),
+                   db: Session = Depends(get_db)):
+    obj = db.get(Verein, vid)
+    if obj:
+        obj.Kuerzel = Kuerzel.strip(); obj.Name = Name.strip()
+        obj.Ort = Ort or None
+        db.commit()
+        flash(request, "success", f"Verein '{obj.Kuerzel}' aktualisiert.")
+    return RedirectResponse("/admin/vereine", status_code=303)
+
+
 @router.post("/vereine/{vid}/delete")
 def vereine_delete(request: Request, vid: int, db: Session = Depends(get_db)):
     obj = db.get(Verein, vid)
@@ -50,9 +67,27 @@ def vereine_delete(request: Request, vid: int, db: Session = Depends(get_db)):
 # ---------------- Altersklassen ---------------------------------------------
 
 @router.get("/altersklassen")
-def altersklassen(request: Request, db: Session = Depends(get_db)):
+def altersklassen(request: Request, edit: Optional[int] = Query(None),
+                  db: Session = Depends(get_db)):
     items = db.query(Altersklasse).order_by(Altersklasse.Kuerzel).all()
-    return render(request, db, "admin/altersklassen.html", items=items)
+    return render(request, db, "admin/altersklassen.html", items=items, edit_id=edit)
+
+
+@router.post("/altersklassen/{aid}/update")
+def altersklassen_update(request: Request, aid: int,
+                         Kuerzel: str = Form(...), Bezeichnung: str = Form(...),
+                         Alter_Von: str = Form(""), Alter_Bis: str = Form(""),
+                         Geschlecht: str = Form("alle"),
+                         db: Session = Depends(get_db)):
+    obj = db.get(Altersklasse, aid)
+    if obj:
+        obj.Kuerzel = Kuerzel.strip(); obj.Bezeichnung = Bezeichnung.strip()
+        obj.Alter_Von = int(Alter_Von) if Alter_Von else None
+        obj.Alter_Bis = int(Alter_Bis) if Alter_Bis else None
+        obj.Geschlecht = Geschlecht
+        db.commit()
+        flash(request, "success", f"Altersklasse '{obj.Kuerzel}' aktualisiert.")
+    return RedirectResponse("/admin/altersklassen", status_code=303)
 
 
 @router.post("/altersklassen")
@@ -82,9 +117,25 @@ def altersklassen_delete(request: Request, aid: int, db: Session = Depends(get_d
 # ---------------- Geraete ----------------------------------------------------
 
 @router.get("/geraete")
-def geraete(request: Request, db: Session = Depends(get_db)):
+def geraete(request: Request, edit: Optional[int] = Query(None),
+            db: Session = Depends(get_db)):
     items = db.query(Geraete).order_by(Geraete.Name).all()
-    return render(request, db, "admin/geraete.html", items=items)
+    return render(request, db, "admin/geraete.html", items=items, edit_id=edit)
+
+
+@router.post("/geraete/{gid}/update")
+def geraete_update(request: Request, gid: int,
+                   Name: str = Form(...), Einheit: str = Form("Pkt"),
+                   Beschreibung: str = Form(""),
+                   db: Session = Depends(get_db)):
+    obj = db.get(Geraete, gid)
+    if obj:
+        obj.Name = Name.strip()
+        obj.Einheit = Einheit.strip() or "Pkt"
+        obj.Beschreibung = Beschreibung or None
+        db.commit()
+        flash(request, "success", f"Geraet '{obj.Name}' aktualisiert.")
+    return RedirectResponse("/admin/geraete", status_code=303)
 
 
 @router.post("/geraete")
@@ -109,11 +160,33 @@ def geraete_delete(request: Request, gid: int, db: Session = Depends(get_db)):
 # ---------------- Berechnungs-Arten -----------------------------------------
 
 @router.get("/berechnungen")
-def berechnungen(request: Request, db: Session = Depends(get_db)):
+def berechnungen(request: Request, edit: Optional[int] = Query(None),
+                 db: Session = Depends(get_db)):
     from scoring import REGISTRY
     items = db.query(BerechnungsArt).order_by(BerechnungsArt.Regel_Kuerzel).all()
     return render(request, db, "admin/berechnungen.html",
-                  items=items, registry_codes=sorted(REGISTRY.keys()))
+                  items=items, registry_codes=sorted(REGISTRY.keys()), edit_id=edit)
+
+
+@router.post("/berechnungen/{bid}/update")
+def berechnungen_update(request: Request, bid: int,
+                        Regel_Kuerzel: str = Form(...),
+                        Bezeichnung: str = Form(...),
+                        Beschreibung: str = Form(""),
+                        db: Session = Depends(get_db)):
+    from scoring import REGISTRY
+    obj = db.get(BerechnungsArt, bid)
+    if obj:
+        if Regel_Kuerzel not in REGISTRY:
+            flash(request, "error",
+                  f"'{Regel_Kuerzel}' kennt das Backend nicht.")
+            return RedirectResponse("/admin/berechnungen", status_code=303)
+        obj.Regel_Kuerzel = Regel_Kuerzel.strip()
+        obj.Bezeichnung = Bezeichnung.strip()
+        obj.Beschreibung = Beschreibung or None
+        db.commit()
+        flash(request, "success", f"Berechnung '{obj.Regel_Kuerzel}' aktualisiert.")
+    return RedirectResponse("/admin/berechnungen", status_code=303)
 
 
 @router.post("/berechnungen")
