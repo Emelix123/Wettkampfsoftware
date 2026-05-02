@@ -1,8 +1,13 @@
+networks:
+  wk_net:
+    driver: bridge
+
 services:
   db:
     image: mysql:8.0
     container_name: wk_db
     restart: unless-stopped
+    networks: [wk_net]
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE:      ${DB_NAME:-wettkampfDB}
@@ -29,6 +34,7 @@ services:
     build: ./app
     container_name: wk_app
     restart: unless-stopped
+    networks: [wk_net]
     environment:
       DB_HOST: db
       DB_PORT: "3306"
@@ -49,6 +55,7 @@ services:
     image: nginx:1.27-alpine
     container_name: wk_nginx
     restart: unless-stopped
+    networks: [wk_net]
     ports:
       - "${HTTP_PORT:-8080}:80"
     depends_on:
