@@ -1,5 +1,9 @@
 {% extends "pdf/_base.html" %}
 {% block title %}Urkunden — {{ wk.Name }}{% endblock %}
+{% block extra_style %}
+  /* Bei Urkunden ist eine Seitenzahl unsinnig (1 Urkunde = 1 Seite). */
+  @page { @bottom-right { content: none; } }
+{% endblock %}
 {% block content %}
 {% for r in einzel %}
 <div class="urkunde">
