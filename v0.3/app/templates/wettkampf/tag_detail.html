@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ tag.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3 flex-wrap">
+  <a href="/tage" class="text-sm text-brand-600 hover:underline">← Wettkampftage</a>
+</div>
+<div class="card mb-4">
+  <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
+  <div class="text-slate-500 mt-1">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+  <div class="mt-3 flex gap-2">
+    <a class="btn btn-ghost" href="/live/tag/{{ tag.idWettkampf_Tag }}">📺 Live-Ansicht</a>
+    <a class="btn btn-ghost" href="/export/tag/{{ tag.idWettkampf_Tag }}/ergebnisse.pdf" target="_blank">📄 Gesamt-PDF</a>
+  </div>
+</div>
+
+<h2 class="text-lg font-semibold mb-3">Wettkaempfe</h2>
+<div class="grid md:grid-cols-3 gap-4">
+  {% if user.role == 'admin' %}
+  <form method="post" action="/wettkampf?tag_id={{ tag.idWettkampf_Tag }}" class="card space-y-3">
+    <h3 class="font-semibold">Neuer Wettkampf</h3>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="label">Nr.</label><input class="input" type="number" name="Wettkampf_Nr" required value="{{ (tag.wettkaempfe|length) + 101 }}"></div>
+      <div>
+        <label class="label">Typ</label>
+        <select class="input" name="Typ">
+          <option value="Einzel">Einzel</option>
+          <option value="Mannschaft">Mannschaft</option>
+          <option value="Kombination">Kombination</option>
+        </select>
+      </div>
+    </div>
+    <div><label class="label">Name</label><input class="input" name="Name" required></div>
+    <div>
+      <label class="label">Altersklasse</label>
+      <select class="input" name="Altersklasse_id">
+        {% for a in altersklassen %}<option value="{{ a.idAltersklasse }}">{{ a.Kuerzel }} — {{ a.Bezeichnung }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label class="label">Mannschaftsgroesse (nur bei Team)</label><input class="input" type="number" name="Mannschaft_Groesse" placeholder="leer = unbegrenzt"></div>
+    <button class="btn btn-primary">Anlegen</button>
+  </form>
+  {% endif %}
+
+  <div class="card md:col-span-2">
+    {% if tag.wettkaempfe %}
+    <table class="table">
+      <thead><tr><th>Nr</th><th>Name</th><th>AK</th><th>Typ</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for w in tag.wettkaempfe %}
+        <tr>
+          <td>{{ w.Wettkampf_Nr }}</td>
+          <td><a href="/wettkampf/{{ w.idWettkampf }}" class="text-brand-700 hover:underline font-medium">{{ w.Name }}</a></td>
+          <td>{{ w.altersklasse.Kuerzel }}</td>
+          <td>{{ w.Typ }}{% if w.Typ != 'Einzel' and w.Mannschaft_Groesse %} (Top {{ w.Mannschaft_Groesse }}){% endif %}</td>
+          <td>
+            {% set color = 'badge-blue' if w.Status=='Aktiv' else ('badge-green' if w.Status=='Abgeschlossen' else 'badge') %}
+            <span class="badge {{ color }}">{{ w.Status }}</span>
+          </td>
+          <td class="text-right">
+            <a class="btn btn-ghost" href="/wettkampf/{{ w.idWettkampf }}">oeffnen</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-slate-400 italic text-center py-6">Noch keine Wettkaempfe an diesem Tag.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

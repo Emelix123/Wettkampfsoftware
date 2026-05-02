@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Übersicht{% endblock %}
+{% block content %}
+<div class="grid md:grid-cols-3 gap-4">
+  <a href="/tage" class="card hover:shadow-md transition block">
+    <div class="text-3xl">📅</div>
+    <h2 class="font-semibold mt-2">Wettkampftage</h2>
+    <p class="text-sm text-slate-500">Termine und Wettkaempfe verwalten</p>
+  </a>
+  <a href="/personen" class="card hover:shadow-md transition block">
+    <div class="text-3xl">🤸</div>
+    <h2 class="font-semibold mt-2">Personen</h2>
+    <p class="text-sm text-slate-500">Athleten und Vereine</p>
+  </a>
+  <a href="/live" class="card hover:shadow-md transition block">
+    <div class="text-3xl">📺</div>
+    <h2 class="font-semibold mt-2">Live-Ansicht</h2>
+    <p class="text-sm text-slate-500">Oeffentliche Ranglisten (kein Login noetig)</p>
+  </a>
+  {% if user.role == 'admin' %}
+  <a href="/admin" class="card hover:shadow-md transition block">
+    <div class="text-3xl">⚙️</div>
+    <h2 class="font-semibold mt-2">Admin / Stammdaten</h2>
+    <p class="text-sm text-slate-500">Vereine, Geraete, Berechnungs-Arten, Benutzer</p>
+  </a>
+  {% endif %}
+</div>
+
+<div class="card mt-6">
+  <h3 class="font-semibold mb-2">Aktive Wettkaempfe</h3>
+  {% if active %}
+    <ul class="divide-y divide-slate-100">
+    {% for w in active %}
+      <li class="py-2 flex items-center gap-3">
+        <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">{{ w.Status }}</span>
+        <a href="/wettkampf/{{ w.idWettkampf }}" class="font-medium text-brand-700 hover:underline">{{ w.Name }}</a>
+        <span class="text-slate-500 text-sm">{{ w.tag.Name }} · {{ w.tag.Wettkampf_Datum }}</span>
+      </li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-sm text-slate-500">Aktuell keine aktiven Wettkaempfe.</p>
+  {% endif %}
+</div>
+{% endblock %}

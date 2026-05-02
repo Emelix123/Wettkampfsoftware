@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Benutzer{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3">
+  <h1 class="text-2xl font-bold">Benutzer</h1>
+  <a href="/admin" class="text-sm text-brand-600 hover:underline">← zurueck</a>
+</div>
+
+<div class="grid md:grid-cols-3 gap-4">
+  <form method="post" action="/admin/users" class="card space-y-3">
+    <h2 class="font-semibold">Neuer Benutzer</h2>
+    <div><label class="label">Benutzername</label><input class="input" name="username" required></div>
+    <div><label class="label">E-Mail</label><input class="input" type="email" name="email" required></div>
+    <div><label class="label">Passwort</label><input class="input" type="password" name="password" required minlength="6"></div>
+    <div>
+      <label class="label">Rolle</label>
+      <select class="input" name="role">
+        <option value="viewer">viewer (nur lesen)</option>
+        <option value="kampfrichter">kampfrichter (eigene Wertung)</option>
+        <option value="tisch">tisch (Tisch-Eingabe mehrerer Wertungen)</option>
+        <option value="admin">admin (alles)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary">Anlegen</button>
+  </form>
+
+  <div class="card md:col-span-2 overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Benutzer</th><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th></th></tr></thead>
+      <tbody>
+        {% for u in items %}
+        <tr>
+          <td class="font-medium">{{ u.username }}</td>
+          <td class="text-slate-600">{{ u.email }}</td>
+          <td><span class="badge">{{ u.role }}</span></td>
+          <td>{% if u.is_active %}<span class="badge badge-green">aktiv</span>{% else %}<span class="badge badge-red">inaktiv</span>{% endif %}</td>
+          <td class="text-right whitespace-nowrap">
+            {% if u.id != user.id %}
+            <form method="post" action="/admin/users/{{ u.id }}/toggle-active" class="inline"><button class="btn btn-ghost">{% if u.is_active %}deaktivieren{% else %}aktivieren{% endif %}</button></form>
+            <form method="post" action="/admin/users/{{ u.id }}/delete" class="inline" onsubmit="return confirm('Benutzer wirklich loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+            {% else %}
+            <span class="text-xs text-slate-400 italic">(eigener Account)</span>
+            {% endif %}
+            <details class="inline-block ml-2">
+              <summary class="text-xs text-slate-500 cursor-pointer">Passwort zuruecksetzen</summary>
+              <form method="post" action="/admin/users/{{ u.id }}/reset-password" class="mt-2 flex gap-2">
+                <input class="input" name="new_password" type="password" required minlength="6" placeholder="Neues Passwort">
+                <button class="btn btn-ghost">setzen</button>
+              </form>
+            </details>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Anmeldung — {{ wk.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3 flex-wrap">
+  <a href="/wettkampf/{{ wk.idWettkampf }}" class="text-sm text-brand-600 hover:underline">← {{ wk.Name }}</a>
+</div>
+<h1 class="text-2xl font-bold mb-4">Anmeldung — {{ wk.Name }}</h1>
+
+<div class="grid lg:grid-cols-3 gap-4">
+  <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/add" class="card space-y-3">
+    <h2 class="font-semibold">Person anmelden</h2>
+    <div>
+      <label class="label">Person</label>
+      <select class="input" name="Personen_id" required>
+        {% for p in verfuegbar %}
+          <option value="{{ p.idPersonen }}">{{ p.Nachname }}, {{ p.Vorname }}{% if p.verein %} ({{ p.verein.Kuerzel }}){% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="label">Startnummer</label><input class="input" type="number" name="Startnummer" placeholder="auto"></div>
+      <div>
+        <label class="label">Riege</label>
+        <select class="input" name="Riege_id">
+          <option value="">—</option>
+          {% for r in wk.riegen %}<option value="{{ r.idRiege }}">{{ r.Bezeichnung }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    {% if wk.Typ != 'Einzel' %}
+    <div>
+      <label class="label">Mannschaft</label>
+      <select class="input" name="Mannschaft_id">
+        <option value="">—</option>
+        {% for m in wk.mannschaften %}<option value="{{ m.idMannschaft }}">{{ m.Name }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <button class="btn btn-primary">Anmelden</button>
+    {% if not verfuegbar %}<p class="text-xs text-slate-500">Alle Personen sind bereits angemeldet. Lege weitere unter <a href="/personen" class="underline">Personen</a> an.</p>{% endif %}
+  </form>
+
+  <div class="card lg:col-span-2 overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Nr</th><th>Person</th><th>Verein</th><th>Riege</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for a in angemeldete %}
+        <tr>
+          <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/update">
+          <td><input class="input w-16" type="number" name="Startnummer" value="{{ a.Startnummer or '' }}"></td>
+          <td class="font-medium">{{ a.person.Nachname }}, {{ a.person.Vorname }}</td>
+          <td>{{ a.person.verein.Kuerzel if a.person.verein else '—' }}</td>
+          <td>
+            <select class="input" name="Riege_id">
+              <option value="">—</option>
+              {% for r in wk.riegen %}<option value="{{ r.idRiege }}" {% if a.Riege_id==r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>{% endfor %}
+            </select>
+          </td>
+          {% if wk.Typ != 'Einzel' %}
+          <td>
+            <select class="input" name="Mannschaft_id">
+              <option value="">—</option>
+              {% for m in wk.mannschaften %}<option value="{{ m.idMannschaft }}" {% if a.Mannschaft_id==m.idMannschaft %}selected{% endif %}>{{ m.Name }}</option>{% endfor %}
+            </select>
+          </td>
+          {% endif %}
+          <td>
+            <select class="input" name="Start_Status">
+              {% for s in ['Gemeldet','Gestartet','Zurueckgezogen','Disqualifiziert'] %}
+                <option value="{{ s }}" {% if a.Start_Status==s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="text-right whitespace-nowrap">
+            <button class="btn btn-ghost">speichern</button>
+          </form>
+            <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/delete" class="inline" onsubmit="return confirm('Anmeldung entfernen?')"><button class="btn btn-danger">x</button></form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-slate-400 italic">Noch keine Anmeldungen.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

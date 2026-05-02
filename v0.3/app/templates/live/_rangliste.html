@@ -1,0 +1,46 @@
+<div class="card mb-4">
+  <h2 class="font-semibold mb-3">🏆 Einzelwertung</h2>
+  <div class="overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Platz</th><th>Athlet</th><th>Verein</th><th class="text-right">Geraete</th><th class="text-right">Score</th></tr></thead>
+    <tbody>
+      {% for r in einzel %}
+      <tr>
+        <td>
+          {% if r.Platz == 1 %}🥇{% elif r.Platz == 2 %}🥈{% elif r.Platz == 3 %}🥉{% else %}{{ r.Platz }}{% endif %}
+        </td>
+        <td class="font-medium">{{ r.Nachname }}, {{ r.Vorname }}</td>
+        <td>{{ r.Verein_Kuerzel or '—' }}</td>
+        <td class="text-right">{{ r.Anzahl_Geraete_Gewertet }}</td>
+        <td class="text-right font-mono font-semibold">{{ '%.3f' | format(r.GesamtScore|float) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-center text-slate-400 italic">Noch keine Wertungen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if teams %}
+<div class="card">
+  <h2 class="font-semibold mb-3">👥 Mannschaftswertung{% if wk.Mannschaft_Groesse %} (beste {{ wk.Mannschaft_Groesse }} Mitglieder){% endif %}</h2>
+  <div class="overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Platz</th><th>Mannschaft</th><th class="text-right">Mitglieder</th><th class="text-right">Score</th></tr></thead>
+    <tbody>
+      {% for t in teams %}
+      <tr>
+        <td>
+          {% if t.Platz == 1 %}🥇{% elif t.Platz == 2 %}🥈{% elif t.Platz == 3 %}🥉{% else %}{{ t.Platz }}{% endif %}
+        </td>
+        <td class="font-medium">{{ t.Mannschaft_Name }}</td>
+        <td class="text-right">{{ t.Mitglieder_Gesamt }}</td>
+        <td class="text-right font-mono font-semibold">{{ '%.3f' | format(t.GesamtScore|float) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}

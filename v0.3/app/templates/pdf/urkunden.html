@@ -1,0 +1,27 @@
+{% extends "pdf/_base.html" %}
+{% block title %}Urkunden — {{ wk.Name }}{% endblock %}
+{% block content %}
+{% for r in einzel %}
+<div class="urkunde">
+  <h1>🏅 Urkunde</h1>
+  <div style="font-size:14pt; color:#555;">{{ wk.tag.Name }}</div>
+  <div style="font-size:12pt; color:#777; margin-bottom: 24pt;">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</div>
+
+  <div class="name">{{ r.Vorname }} {{ r.Nachname }}</div>
+  {% if r.Verein_Name %}<div style="font-size:13pt; color:#555;">{{ r.Verein_Name }}</div>{% endif %}
+
+  <div class="platz">
+    {% if r.Platz == 1 %}🥇 1. Platz
+    {% elif r.Platz == 2 %}🥈 2. Platz
+    {% elif r.Platz == 3 %}🥉 3. Platz
+    {% else %}{{ r.Platz }}. Platz{% endif %}
+  </div>
+  <div class="score">Gesamtwertung: <strong>{{ '%.3f' | format(r.GesamtScore|float) }}</strong> Punkte</div>
+
+  <div class="footer">
+    {{ wk.tag.Ort or '' }}{% if wk.tag.Ort %}, {% endif %}{{ wk.tag.Wettkampf_Datum }}<br>
+    {{ wk.tag.Veranstalter or '' }}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

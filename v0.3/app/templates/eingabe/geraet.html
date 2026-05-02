@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Eingabe {{ ghw.geraet.Name }} — {{ wk.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-3 gap-3 flex-wrap">
+  <a href="/eingabe/{{ wk.idWettkampf }}" class="text-sm text-brand-600 hover:underline">← Geraete</a>
+</div>
+<div class="card mb-4 flex flex-wrap items-center gap-3">
+  <div class="flex-1">
+    <h1 class="text-2xl font-bold">{{ ghw.geraet.Name }}</h1>
+    <div class="text-slate-500 text-sm">
+      {{ wk.Name }} · {{ ghw.berechnung.Bezeichnung }}
+      · <strong>{{ num_judges }}</strong> Richter
+      · <strong>{{ versuche_max }}</strong> Versuche
+      · Kriterien: <code>{{ kriterien|join(', ') }}</code>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <a class="btn {{ 'btn-primary' if mode=='tisch' else 'btn-ghost' }}" href="?mode=tisch">Tisch-Modus</a>
+    <a class="btn {{ 'btn-primary' if mode=='single' else 'btn-ghost' }}" href="?mode=single">Single-Modus</a>
+  </div>
+</div>
+
+{% if mode == 'tisch' %}
+  {# Tisch-Modus: pro Athlet eine Zeile mit allen Slots #}
+  <div class="space-y-3">
+    {% for s in starter %}
+      {% for vnr in range(1, versuche_max + 1) %}
+      {% set ee = versuch_map.get((s.Personen_id, vnr)) %}
+      {% set slots = wertung_map.get((s.Personen_id, vnr), {}) %}
+      <form method="post" action="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/save" class="card">
+        <input type="hidden" name="pid" value="{{ s.Personen_id }}">
+        <input type="hidden" name="versuch" value="{{ vnr }}">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+          <div class="font-semibold text-lg">#{{ s.Startnummer }} {{ s.person.Nachname }}, {{ s.person.Vorname }}</div>
+          {% if s.person.verein %}<span class="badge">{{ s.person.verein.Kuerzel }}</span>{% endif %}
+          {% if versuche_max > 1 %}<span class="badge badge-blue">Versuch {{ vnr }}</span>{% endif %}
+          {% if ee %}
+            {% if ee.Status == 'Freigegeben' and ee.Score is not none %}
+              <span class="badge badge-green">Score: {{ ee.Score }}</span>
+            {% elif ee.Status == 'In_Bewertung' %}
+              <span class="badge badge-amber">in Bewertung</span>
+            {% endif %}
+            {% if not ee.Ist_Gueltig %}<span class="badge badge-red">Fehlversuch</span>{% endif %}
+          {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+        <table class="table">
+          <thead><tr><th>Richter</th>{% for k in kriterien %}<th>{{ k }}</th>{% endfor %}<th class="w-24">Aktion</th></tr></thead>
+          <tbody>
+            {% for slot in range(1, num_judges + 1) %}
+            <tr>
+              <td class="font-medium">R{{ slot }}</td>
+              {% for k in kriterien %}
+              <td><input class="input" name="slot{{ slot }}__{{ k }}" type="text" inputmode="decimal"
+                         value="{{ slots.get(slot, {}).get(k, '') }}"></td>
+              {% endfor %}
+              {% if loop.first %}
+              <td rowspan="{{ num_judges }}" class="align-middle">
+                <label class="text-xs flex items-center gap-1"><input type="checkbox" name="ist_gueltig" value="1" {% if not ee or ee.Ist_Gueltig %}checked{% endif %}> gueltig</label>
+                <button class="btn btn-primary mt-2 w-full">speichern</button>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% if ee %}
+        <div class="text-right mt-2">
+          <button formaction="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/clear" formmethod="post" class="btn btn-ghost text-xs"
+                  onclick="return confirm('Versuch zuruecksetzen?')">Versuch zuruecksetzen</button>
+        </div>
+        {% endif %}
+      </form>
+      {% endfor %}
+    {% else %}
+    <p class="card text-slate-400 italic text-center">Noch keine Anmeldungen fuer diesen Wettkampf.</p>
+    {% endfor %}
+  </div>
+{% else %}
+  {# Single-Modus: kompakte Form pro Athlet, nur Slot 1 #}
+  <div class="grid md:grid-cols-2 gap-3">
+    {% for s in starter %}
+      {% for vnr in range(1, versuche_max + 1) %}
+      {% set ee = versuch_map.get((s.Personen_id, vnr)) %}
+      {% set slots = wertung_map.get((s.Personen_id, vnr), {}) %}
+      <form method="post" action="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/save" class="card">
+        <input type="hidden" name="pid" value="{{ s.Personen_id }}">
+        <input type="hidden" name="versuch" value="{{ vnr }}">
+        <div class="font-semibold mb-1">#{{ s.Startnummer }} {{ s.person.Nachname }}, {{ s.person.Vorname }}{% if versuche_max > 1 %} · V{{ vnr }}{% endif %}</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          {% for k in kriterien %}
+          <div>
+            <label class="label">{{ k }}</label>
+            <input class="input" name="slot1__{{ k }}" type="text" inputmode="decimal" value="{{ slots.get(1, {}).get(k, '') }}">
+          </div>
+          {% endfor %}
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="text-xs flex items-center gap-1"><input type="checkbox" name="ist_gueltig" value="1" {% if not ee or ee.Ist_Gueltig %}checked{% endif %}> gueltig</label>
+          {% if ee and ee.Score is not none %}<span class="badge badge-green">Score: {{ ee.Score }}</span>
+          {% elif ee %}<span class="badge badge-amber">{{ ee.Status }}</span>{% endif %}
+          <button class="btn btn-primary">meine Wertung speichern</button>
+        </div>
+      </form>
+      {% endfor %}
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

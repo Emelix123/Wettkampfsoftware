@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ wk.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3 flex-wrap">
+  <a href="/tage/{{ wk.Wettkampf_Tag_id }}" class="text-sm text-brand-600 hover:underline">← {{ wk.tag.Name }}</a>
+</div>
+<div class="card mb-4 flex flex-wrap items-center gap-3">
+  <div class="flex-1">
+    <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
+    <div class="text-slate-500 text-sm">{{ wk.altersklasse.Kuerzel }} ({{ wk.altersklasse.Bezeichnung }}) · Typ: {{ wk.Typ }}{% if wk.Mannschaft_Groesse %} · Top {{ wk.Mannschaft_Groesse }} pro Team{% endif %}</div>
+  </div>
+  <div class="flex gap-2 items-center">
+    {% if user.role == 'admin' %}
+    <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/status" class="flex gap-1">
+      <select class="input" name="Status">
+        {% for s in ['Entwurf','Anmeldung','Aktiv','Abgeschlossen','Archiviert'] %}
+          <option value="{{ s }}" {% if wk.Status==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-ghost">setzen</button>
+    </form>
+    {% else %}
+    <span class="badge">{{ wk.Status }}</span>
+    {% endif %}
+    <a class="btn btn-primary" href="/anmeldung/{{ wk.idWettkampf }}">📝 Anmeldung</a>
+    <a class="btn btn-primary" href="/eingabe/{{ wk.idWettkampf }}">⌨️ Eingabe</a>
+    <a class="btn btn-ghost" href="/live/wettkampf/{{ wk.idWettkampf }}" target="_blank">📺 Live</a>
+    <details class="relative">
+      <summary class="btn btn-ghost cursor-pointer">📄 PDF</summary>
+      <div class="absolute right-0 mt-2 bg-white border border-slate-200 rounded shadow-md z-10 p-2 flex flex-col gap-1 min-w-max">
+        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/startliste.pdf" target="_blank">Startliste</a>
+        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/ergebnisse.pdf" target="_blank">Ergebnisse</a>
+        <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf" target="_blank">Urkunden</a>
+      </div>
+    </details>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-4">
+
+  <!-- Geräte -->
+  <section class="card">
+    <h2 class="font-semibold mb-3">Geraete &amp; Berechnung</h2>
+    <table class="table">
+      <thead><tr><th>#</th><th>Geraet</th><th>Berechnung</th><th>Versuche</th><th>Richter</th><th>Faktor</th><th>Offset</th><th></th></tr></thead>
+      <tbody>
+        {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+        <tr>
+          <td>{{ g.Reihenfolge }}</td>
+          <td class="font-medium">{{ g.geraet.Name }}</td>
+          <td><code class="text-xs">{{ g.berechnung.Regel_Kuerzel }}</code></td>
+          <td>{{ g.Anzahl_Versuche }}</td>
+          <td>{{ g.Erwartete_Kampfrichter }}</td>
+          <td>{{ g.Score_Faktor }}</td>
+          <td>{{ g.Score_Offset }}</td>
+          <td class="text-right">
+            {% if user.role == 'admin' %}
+            <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/delete" onsubmit="return confirm('Geraet entfernen?')"><button class="btn btn-danger">x</button></form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-slate-400 italic text-center">Noch keine Geraete zugeordnet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if user.role == 'admin' %}
+    <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete" class="mt-4 grid grid-cols-2 lg:grid-cols-7 gap-2 items-end">
+      <div class="col-span-2"><label class="label">Geraet</label>
+        <select class="input" name="Geraete_id">{% for g in geraete_alle %}<option value="{{ g.idGeraete }}">{{ g.Name }}</option>{% endfor %}</select></div>
+      <div class="col-span-2"><label class="label">Berechnung</label>
+        <select class="input" name="Berechnungs_Art_id">{% for b in berechnungen %}<option value="{{ b.idBerechnungs_Art }}">{{ b.Bezeichnung }}</option>{% endfor %}</select></div>
+      <div><label class="label">Versuche</label><input class="input" type="number" name="Anzahl_Versuche" value="1" min="1"></div>
+      <div><label class="label">Richter</label><input class="input" type="number" name="Erwartete_Kampfrichter" value="3" min="1"></div>
+      <div><button class="btn btn-primary w-full">+ Geraet</button></div>
+      <div><label class="label">Faktor</label><input class="input" type="number" step="0.0001" name="Score_Faktor" value="1.0"></div>
+      <div><label class="label">Offset</label><input class="input" type="number" step="0.0001" name="Score_Offset" value="0.0"></div>
+    </form>
+    {% endif %}
+  </section>
+
+  <!-- Riegen -->
+  <section class="card">
+    <h2 class="font-semibold mb-3">Riegen (Startgruppen)</h2>
+    <table class="table">
+      <thead><tr><th>Bezeichnung</th><th>Startzeit</th><th>Mitglieder</th><th></th></tr></thead>
+      <tbody>
+        {% for r in wk.riegen %}
+        <tr>
+          <td class="font-medium">{{ r.Bezeichnung }}</td>
+          <td>{{ r.Start_Zeit or '—' }}</td>
+          <td>{{ r.idRiege | string + ': ' if false else '' }}{{ wk.anmeldungen|selectattr('Riege_id','equalto', r.idRiege)|list|length }}</td>
+          <td class="text-right">
+            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete"><button class="btn btn-danger">x</button></form>{% endif %}
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Riegen.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    {% if user.role == 'admin' %}
+    <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen" class="mt-3 flex gap-2">
+      <input class="input" name="Bezeichnung" placeholder="z.B. Riege 1" required>
+      <input class="input" type="time" name="Start_Zeit">
+      <button class="btn btn-primary">+ Riege</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <!-- Mannschaften -->
+  {% if wk.Typ != 'Einzel' %}
+  <section class="card lg:col-span-2">
+    <h2 class="font-semibold mb-3">Mannschaften</h2>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Verein</th><th>Mitglieder</th><th></th></tr></thead>
+      <tbody>
+        {% for m in wk.mannschaften %}
+        <tr>
+          <td class="font-medium">{{ m.Name }}</td>
+          <td>{{ m.verein.Kuerzel if m.verein else '—' }}</td>
+          <td>{{ wk.anmeldungen|selectattr('Mannschaft_id','equalto', m.idMannschaft)|list|length }}</td>
+          <td class="text-right">
+            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/mannschaften/{{ m.idMannschaft }}/delete"><button class="btn btn-danger">x</button></form>{% endif %}
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Mannschaften.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    {% if user.role == 'admin' %}
+    <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/mannschaften" class="mt-3 flex gap-2">
+      <input class="input" name="Name" placeholder="Team-Name" required>
+      <select class="input" name="Verein_id">
+        <option value="">— Verein —</option>
+        {% for v in vereine %}<option value="{{ v.idVerein }}">{{ v.Kuerzel }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-primary">+ Mannschaft</button>
+    </form>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

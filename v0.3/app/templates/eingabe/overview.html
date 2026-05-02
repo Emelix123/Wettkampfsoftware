@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Eingabe — {{ wk.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3 flex-wrap">
+  <a href="/wettkampf/{{ wk.idWettkampf }}" class="text-sm text-brand-600 hover:underline">← {{ wk.Name }}</a>
+</div>
+<h1 class="text-2xl font-bold mb-4">Eingabe — {{ wk.Name }}</h1>
+
+<p class="text-sm text-slate-600 mb-4">Waehle ein Geraet:</p>
+<div class="grid md:grid-cols-3 gap-3">
+  {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+  <a class="card hover:shadow-md" href="/eingabe/{{ wk.idWettkampf }}/{{ g.Geraete_id }}">
+    <div class="text-xl font-semibold">{{ g.geraet.Name }}</div>
+    <div class="text-xs text-slate-500 mt-1">{{ g.berechnung.Bezeichnung }} · {{ g.Erwartete_Kampfrichter }} Richter · {{ g.Anzahl_Versuche }} Versuche</div>
+  </a>
+  {% else %}
+  <p class="text-slate-400 italic">Diesem Wettkampf sind noch keine Geraete zugeordnet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Live-Ansicht{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">📺 Live-Ansicht</h1>
+<p class="text-sm text-slate-600 mb-4">Aktuelle Wettkampftage — kein Login erforderlich.</p>
+<div class="grid md:grid-cols-2 gap-3">
+  {% for t in tage %}
+  <a href="/live/tag/{{ t.idWettkampf_Tag }}" class="card hover:shadow-md">
+    <div class="font-semibold">{{ t.Name }}</div>
+    <div class="text-sm text-slate-500">{{ t.Wettkampf_Datum }} · {{ t.Ort or '—' }}</div>
+  </a>
+  {% else %}
+  <p class="text-slate-400 italic">Noch keine Wettkampftage.</p>
+  {% endfor %}
+</div>
+{% endblock %}

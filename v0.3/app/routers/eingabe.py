@@ -1,0 +1,211 @@
+"""Live-Eingabe der Versuche.
+
+Modi:
+  * "tisch"  (Default fuer admin/tisch): Eine Maske listet alle Athleten dieses
+             Geraets; pro Athlet werden alle Richter-Wertungen in einer Zeile
+             eingetragen.
+  * "single" (Default fuer kampfrichter): Ein Athlet auf einmal, der eingeloggte
+             User ist Richter Slot 1.
+"""
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+
+from auth import require_user
+from database import get_db
+from models import (
+    Wettkampf, GeraeteHasWettkampf, PersonenHasWettkampf,
+    EinzelErgebnis, KampfrichterWertung, KampfrichterWertungDetail,
+)
+from scoring import get_strategy
+from services.score_service import recalc_versuch
+from views import render, flash
+
+router = APIRouter(prefix="/eingabe")
+
+
+def _get_or_create_versuch(db: Session, wid: int, gid: int, pid: int, vnr: int) -> EinzelErgebnis:
+    ee = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid,
+                   Personen_id=pid, Versuch_Nr=vnr)
+        .first()
+    )
+    if ee:
+        return ee
+    ee = EinzelErgebnis(
+        Wettkampf_id=wid, Geraete_id=gid,
+        Personen_id=pid, Versuch_Nr=vnr,
+        Status="Offen", Ist_Gueltig=1,
+    )
+    db.add(ee); db.commit(); db.refresh(ee)
+    return ee
+
+
+@router.get("/{wid}")
+def overview(request: Request, wid: int, db: Session = Depends(get_db),
+             user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
+    wk = db.get(Wettkampf, wid)
+    if not wk:
+        flash(request, "error", "Wettkampf nicht gefunden.")
+        return RedirectResponse("/tage", status_code=303)
+    return render(request, db, "eingabe/overview.html", wk=wk)
+
+
+@router.get("/{wid}/{gid}")
+def geraet(request: Request, wid: int, gid: int,
+           mode: Optional[str] = Query(None),
+           db: Session = Depends(get_db),
+           user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
+    wk = db.get(Wettkampf, wid)
+    ghw = (
+        db.query(GeraeteHasWettkampf)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid).first()
+    )
+    if not wk or not ghw:
+        flash(request, "error", "Wettkampf oder Geraet nicht gefunden.")
+        return RedirectResponse(f"/eingabe/{wid}", status_code=303)
+
+    if not mode:
+        mode = "tisch" if user.role in ("admin", "tisch") else "single"
+
+    starter = (
+        db.query(PersonenHasWettkampf)
+        .filter_by(Wettkampf_id=wid)
+        .filter(PersonenHasWettkampf.Start_Status.in_(["Gemeldet", "Gestartet"]))
+        .order_by(PersonenHasWettkampf.Startnummer)
+        .all()
+    )
+
+    versuche = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid)
+        .all()
+    )
+    versuch_map: dict[tuple[int, int], EinzelErgebnis] = {
+        (e.Personen_id, e.Versuch_Nr): e for e in versuche
+    }
+    # Wertungen pro Versuch: dict[(pid, vnr)] -> dict[slot] -> dict[Krit, Wert]
+    wertung_map: dict[tuple[int, int], dict[int, dict[str, float]]] = {}
+    for e in versuche:
+        slots: dict[int, dict[str, float]] = {}
+        for w in e.wertungen:
+            slots[w.Richter_Slot] = {d.Kriterium: float(d.Wert) for d in w.details}
+        wertung_map[(e.Personen_id, e.Versuch_Nr)] = slots
+
+    strategy = get_strategy(ghw.berechnung.Regel_Kuerzel)
+    return render(request, db, "eingabe/geraet.html",
+                  wk=wk, ghw=ghw, mode=mode, starter=starter,
+                  versuch_map=versuch_map, wertung_map=wertung_map,
+                  kriterien=strategy.required_kriterien,
+                  num_judges=ghw.Erwartete_Kampfrichter,
+                  versuche_max=ghw.Anzahl_Versuche)
+
+
+@router.post("/{wid}/{gid}/save")
+async def save(request: Request, wid: int, gid: int,
+               db: Session = Depends(get_db),
+               user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
+    """Form-Felder:
+        pid          - Personen_id
+        versuch      - Versuch_Nr
+        ist_gueltig  - "1" / "0"
+        slotN__<Krit> - Wert (z.B. slot1__D_Note=4.2)
+    Im Single-Mode (kampfrichter) erzwingt das Backend Slot=1.
+    """
+    wk = db.get(Wettkampf, wid)
+    ghw = (
+        db.query(GeraeteHasWettkampf)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid).first()
+    )
+    if not wk or not ghw:
+        return RedirectResponse(f"/eingabe/{wid}", status_code=303)
+
+    form = dict(await request.form())
+    try:
+        pid = int(form.get("pid", "0"))
+        versuch = int(form.get("versuch", "1"))
+    except ValueError:
+        flash(request, "error", "Ungueltige Form-Daten.")
+        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+
+    ist_gueltig = form.get("ist_gueltig", "1") == "1"
+
+    ee = _get_or_create_versuch(db, wid, gid, pid, versuch)
+    ee.Ist_Gueltig = 1 if ist_gueltig else 0
+    ee.Status = "In_Bewertung"
+    ee.Erfasst_Von = user.id
+    db.commit()
+
+    slot_data: dict[int, dict[str, float]] = {}
+    for key, value in form.items():
+        if "__" not in key or not key.startswith("slot"):
+            continue
+        slot_str, krit = key.split("__", 1)
+        try:
+            slot = int(slot_str.replace("slot", ""))
+        except ValueError:
+            continue
+        s_value = str(value).strip().replace(",", ".")
+        if s_value == "":
+            continue
+        try:
+            wert = float(s_value)
+        except ValueError:
+            continue
+        slot_data.setdefault(slot, {})[krit] = wert
+
+    if user.role == "kampfrichter":
+        # Eigener Slot: nutze user.id modulo, aber stabil: nimm einfach 1
+        # und merke user als Richter_user_id (Eindeutigkeit ueber Slot ist
+        # bereits durch UQ_KW_Ergebnis_Slot gesichert).
+        if 1 in slot_data:
+            slot_data = {1: slot_data[1]}
+        else:
+            return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+
+    for slot, kv in slot_data.items():
+        if not kv:
+            continue
+        existing = (
+            db.query(KampfrichterWertung)
+            .filter_by(Einzel_Ergebnis_id=ee.idEinzel_Ergebnis, Richter_Slot=slot)
+            .first()
+        )
+        if existing:
+            db.delete(existing); db.commit()
+        w = KampfrichterWertung(
+            Einzel_Ergebnis_id=ee.idEinzel_Ergebnis,
+            Richter_user_id=user.id if user.role == "kampfrichter" else None,
+            Richter_Slot=slot,
+            Erfasst_Von=user.id,
+        )
+        db.add(w); db.commit(); db.refresh(w)
+        for krit, wert in kv.items():
+            db.add(KampfrichterWertungDetail(
+                Wertung_id=w.idWertung, Kriterium=krit, Wert=wert,
+            ))
+        db.commit()
+
+    recalc_versuch(db, ee)
+    flash(request, "success", f"Versuch {versuch} fuer Startnummer/Person #{pid} gespeichert.")
+    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+
+
+@router.post("/{wid}/{gid}/clear")
+async def clear_versuch(request: Request, wid: int, gid: int,
+                        db: Session = Depends(get_db),
+                        user=Depends(require_user(("admin", "tisch")))):
+    form = dict(await request.form())
+    pid = int(form.get("pid", "0")); versuch = int(form.get("versuch", "1"))
+    ee = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid,
+                   Personen_id=pid, Versuch_Nr=versuch).first()
+    )
+    if ee:
+        db.delete(ee); db.commit()
+        flash(request, "success", "Versuch geloescht.")
+    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)

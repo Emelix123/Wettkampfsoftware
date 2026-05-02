@@ -1,0 +1,60 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: wk_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE:      ${DB_NAME:-wettkampfDB}
+      MYSQL_USER:          ${DB_USER:-wettkampf}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-wettkampf}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./db/02_views.sql:/docker-entrypoint-initdb.d/02_views.sql:ro
+      - ./db/03_seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro
+      # Demo-Daten optional: dieses File wird nur beim allerersten Start
+      # ausgefuehrt; um es nicht zu laden, einfach das volume entfernen.
+      - ./db/99_demo_data.sql:/docker-entrypoint-initdb.d/99_demo_data.sql:ro
+    ports:
+      - "3307:3306"   # nur fuer DB-Tools wie DBeaver
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "${DB_USER:-wettkampf}", "-p${DB_PASSWORD:-wettkampf}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: ./app
+    container_name: wk_app
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER:-wettkampf}
+      DB_PASSWORD: ${DB_PASSWORD:-wettkampf}
+      DB_NAME: ${DB_NAME:-wettkampfDB}
+      SECRET_KEY: ${SECRET_KEY:-please-change-me}
+      DEFAULT_ADMIN_USER: ${DEFAULT_ADMIN_USER:-admin}
+      DEFAULT_ADMIN_PASS: ${DEFAULT_ADMIN_PASS:-admin123}
+      DEFAULT_ADMIN_MAIL: ${DEFAULT_ADMIN_MAIL:-admin@example.com}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: wk_nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    depends_on:
+      - app
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  db_data:

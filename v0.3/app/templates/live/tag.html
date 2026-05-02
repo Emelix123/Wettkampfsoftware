@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ tag.Name }} — Live{% endblock %}
+{% block content %}
+<a href="/live" class="text-sm text-brand-600 hover:underline">← Live-Ansicht</a>
+<div class="card my-4">
+  <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
+  <div class="text-slate-500">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+</div>
+<div class="grid md:grid-cols-2 gap-3">
+  {% for w in tag.wettkaempfe %}
+  <a href="/live/wettkampf/{{ w.idWettkampf }}" class="card hover:shadow-md">
+    <div class="flex items-center gap-2">
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-100">{{ w.Wettkampf_Nr }}</span>
+      <span class="font-semibold">{{ w.Name }}</span>
+    </div>
+    <div class="text-xs text-slate-500 mt-1">{{ w.altersklasse.Kuerzel }} · {{ w.Typ }} · Status: {{ w.Status }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

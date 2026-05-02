@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Berechnungs-Arten{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3">
+  <h1 class="text-2xl font-bold">Berechnungs-Arten</h1>
+  <a href="/admin" class="text-sm text-brand-600 hover:underline">← zurueck</a>
+</div>
+<p class="text-sm text-slate-600 mb-4">
+  Jede Berechnungs-Art zeigt auf eine Python-Strategy im Backend.
+  Im Backend verfuegbar: <code>{{ registry_codes|join(', ') }}</code>
+</p>
+
+<div class="grid md:grid-cols-3 gap-4">
+  <form method="post" action="/admin/berechnungen" class="card space-y-3">
+    <h2 class="font-semibold">Neue Berechnungs-Art</h2>
+    <div>
+      <label class="label">Regel-Kuerzel (muss im Backend existieren)</label>
+      <select class="input" name="Regel_Kuerzel">
+        {% for code in registry_codes %}<option value="{{ code }}">{{ code }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label class="label">Bezeichnung</label><input class="input" name="Bezeichnung" required></div>
+    <div><label class="label">Beschreibung</label><input class="input" name="Beschreibung"></div>
+    <button class="btn btn-primary">Anlegen</button>
+  </form>
+  <div class="card md:col-span-2 overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Kuerzel</th><th>Bezeichnung</th><th>Beschreibung</th><th></th></tr></thead>
+      <tbody>
+        {% for b in items %}
+        <tr>
+          <td><code>{{ b.Regel_Kuerzel }}</code></td>
+          <td>{{ b.Bezeichnung }}</td>
+          <td class="text-slate-500">{{ b.Beschreibung or '—' }}</td>
+          <td class="text-right">
+            <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/delete" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="4" class="text-center text-slate-400 italic">Noch keine.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

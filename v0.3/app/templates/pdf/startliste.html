@@ -1,0 +1,55 @@
+{% extends "pdf/_base.html" %}
+{% block title %}Startliste — {{ wk.Name }}{% endblock %}
+{% block content %}
+<footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }} · {{ wk.tag.Ort or '' }}</footer>
+<h1>Startliste</h1>
+<div class="meta">{{ wk.Wettkampf_Nr }} · {{ wk.Name }} · {{ wk.altersklasse.Bezeichnung }}</div>
+
+{% set riegen_used = starter | map(attribute='Riege_id') | unique | list %}
+{% if riegen_used | length > 1 or (riegen_used and riegen_used[0]) %}
+  {% for riege in wk.riegen %}
+    {% set in_riege = starter | selectattr('Riege_id','equalto', riege.idRiege) | list %}
+    {% if in_riege %}
+      <h2>{{ riege.Bezeichnung }}{% if riege.Start_Zeit %} · {{ riege.Start_Zeit }}{% endif %}</h2>
+      <table>
+        <thead><tr><th>Nr</th><th>Name</th><th>Verein</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th></tr></thead>
+        <tbody>
+          {% for s in in_riege %}
+          <tr><td class="num">{{ s.Startnummer or '' }}</td>
+              <td>{{ s.person.Nachname }}, {{ s.person.Vorname }}</td>
+              <td>{{ s.person.verein.Kuerzel if s.person.verein else '' }}</td>
+              {% if wk.Typ != 'Einzel' %}<td>{{ s.mannschaft.Name if s.mannschaft else '' }}</td>{% endif %}
+              <td>{{ s.Start_Status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endfor %}
+  {% set ohne = starter | selectattr('Riege_id','equalto', None) | list %}
+  {% if ohne %}
+    <h2>Ohne Riege</h2>
+    <table>
+      <thead><tr><th>Nr</th><th>Name</th><th>Verein</th></tr></thead>
+      <tbody>
+        {% for s in ohne %}
+        <tr><td class="num">{{ s.Startnummer or '' }}</td><td>{{ s.person.Nachname }}, {{ s.person.Vorname }}</td><td>{{ s.person.verein.Kuerzel if s.person.verein else '' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% else %}
+  <table>
+    <thead><tr><th>Nr</th><th>Name</th><th>Verein</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th></tr></thead>
+    <tbody>
+      {% for s in starter %}
+      <tr><td class="num">{{ s.Startnummer or '' }}</td>
+          <td>{{ s.person.Nachname }}, {{ s.person.Vorname }}</td>
+          <td>{{ s.person.verein.Kuerzel if s.person.verein else '' }}</td>
+          {% if wk.Typ != 'Einzel' %}<td>{{ s.mannschaft.Name if s.mannschaft else '' }}</td>{% endif %}
+          <td>{{ s.Start_Status }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Altersklassen{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3">
+  <h1 class="text-2xl font-bold">Altersklassen</h1>
+  <a href="/admin" class="text-sm text-brand-600 hover:underline">← zurueck</a>
+</div>
+
+<div class="grid md:grid-cols-3 gap-4">
+  <form method="post" action="/admin/altersklassen" class="card space-y-3">
+    <h2 class="font-semibold">Neue Altersklasse</h2>
+    <div><label class="label">Kuerzel</label><input class="input" name="Kuerzel" required maxlength="15" placeholder="z.B. U18M"></div>
+    <div><label class="label">Bezeichnung</label><input class="input" name="Bezeichnung" required></div>
+    <div class="grid grid-cols-2 gap-2">
+      <div><label class="label">Alter von</label><input class="input" name="Alter_Von" type="number"></div>
+      <div><label class="label">Alter bis</label><input class="input" name="Alter_Bis" type="number"></div>
+    </div>
+    <div>
+      <label class="label">Geschlecht</label>
+      <select class="input" name="Geschlecht">
+        <option value="alle">alle</option>
+        <option value="m">m</option>
+        <option value="w">w</option>
+        <option value="d">d</option>
+      </select>
+    </div>
+    <button class="btn btn-primary">Anlegen</button>
+  </form>
+  <div class="card md:col-span-2 overflow-x-auto">
+    <table class="table">
+      <thead><tr><th>Kuerzel</th><th>Bezeichnung</th><th>Alter</th><th>Geschl.</th><th></th></tr></thead>
+      <tbody>
+        {% for a in items %}
+        <tr>
+          <td><span class="badge">{{ a.Kuerzel }}</span></td>
+          <td>{{ a.Bezeichnung }}</td>
+          <td class="text-slate-500">{{ a.Alter_Von or '—' }}–{{ a.Alter_Bis or '—' }}</td>
+          <td>{{ a.Geschlecht }}</td>
+          <td class="text-right">
+            <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/delete" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="5" class="text-center text-slate-400 italic">Noch keine.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

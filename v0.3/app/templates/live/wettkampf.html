@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ wk.Name }} — Live{% endblock %}
+{% block content %}
+<a href="/live/tag/{{ wk.Wettkampf_Tag_id }}" class="text-sm text-brand-600 hover:underline">← {{ wk.tag.Name }}</a>
+<div class="card my-4 flex flex-wrap items-center gap-3">
+  <div class="flex-1">
+    <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
+    <div class="text-slate-500 text-sm">{{ wk.altersklasse.Kuerzel }} · {{ wk.Typ }} · Status: {{ wk.Status }}</div>
+  </div>
+  <span class="text-xs text-slate-400">aktualisiert sich automatisch</span>
+</div>
+
+<div hx-get="/live/wettkampf/{{ wk.idWettkampf }}/rangliste"
+     hx-trigger="load, every 5s"
+     hx-swap="innerHTML">
+  <p class="text-slate-400 italic text-center">Lade Rangliste…</p>
+</div>
+{% endblock %}
