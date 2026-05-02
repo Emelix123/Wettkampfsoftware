@@ -2,20 +2,28 @@
 {% block title %}Ergebnisse — {{ wk.Name }}{% endblock %}
 {% block content %}
 <footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }} · {{ wk.tag.Ort or '' }}</footer>
-<h1>Ergebnisse</h1>
+<h1>Ergebnisse{% if top %} (Top {{ top }}){% endif %}</h1>
 <div class="meta">{{ wk.Wettkampf_Nr }} · {{ wk.Name }} · {{ wk.altersklasse.Bezeichnung }}</div>
 
 <h2>Einzelwertung</h2>
 <table>
-  <thead><tr><th>Platz</th><th>Name</th><th>Verein</th><th class="num">Geraete</th><th class="num">Score</th></tr></thead>
+  <thead>
+    <tr>
+      <th>Platz</th><th>Name</th><th>Verein</th>
+      {% for g in geraete %}<th class="num">{{ g.Name }}</th>{% endfor %}
+      <th class="num">Gesamt</th>
+    </tr>
+  </thead>
   <tbody>
   {% for r in einzel %}
     <tr class="{% if r.Platz==1 %}gold{% elif r.Platz==2 %}silver{% elif r.Platz==3 %}bronze{% endif %}">
       <td class="num">{{ r.Platz }}</td>
       <td>{{ r.Nachname }}, {{ r.Vorname }}</td>
       <td>{{ r.Verein_Kuerzel or '' }}</td>
-      <td class="num">{{ r.Anzahl_Geraete_Gewertet }}</td>
-      <td class="num">{{ '%.3f' | format(r.GesamtScore|float) }}</td>
+      {% for g in geraete %}
+      <td class="num">{% set s = r.geraete_scores.get(g.idGeraete) %}{{ '%.3f' | format(s) if s is not none else '—' }}</td>
+      {% endfor %}
+      <td class="num"><strong>{{ '%.3f' | format(r.GesamtScore|float) }}</strong></td>
     </tr>
   {% endfor %}
   </tbody>

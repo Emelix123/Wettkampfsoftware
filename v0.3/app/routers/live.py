@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import Wettkampf, WettkampfTag
-from services.rangliste import einzel_rangliste, mannschaft_rangliste
+from services.rangliste import einzel_rangliste_mit_geraeten, mannschaft_rangliste
 from views import render
 
 router = APIRouter(prefix="/live")
@@ -43,8 +43,9 @@ def wettkampf_rangliste(request: Request, wid: int, db: Session = Depends(get_db
     wk = db.get(Wettkampf, wid)
     if not wk:
         return RedirectResponse("/live", status_code=303)
-    einzel = einzel_rangliste(db, wid)
+    einzel, geraete = einzel_rangliste_mit_geraeten(db, wid)
     teams = []
     if wk.Typ != "Einzel":
         teams = mannschaft_rangliste(db, wid, wk.Mannschaft_Groesse)
-    return render(request, db, "live/_rangliste.html", wk=wk, einzel=einzel, teams=teams)
+    return render(request, db, "live/_rangliste.html",
+                  wk=wk, einzel=einzel, teams=teams, geraete=geraete)

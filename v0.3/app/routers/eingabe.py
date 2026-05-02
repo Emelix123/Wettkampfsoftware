@@ -57,6 +57,7 @@ def overview(request: Request, wid: int, db: Session = Depends(get_db),
 @router.get("/{wid}/{gid}")
 def geraet(request: Request, wid: int, gid: int,
            mode: Optional[str] = Query(None),
+           riege: Optional[int] = Query(None),
            db: Session = Depends(get_db),
            user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
     wk = db.get(Wettkampf, wid)
@@ -71,13 +72,17 @@ def geraet(request: Request, wid: int, gid: int,
     if not mode:
         mode = "tisch" if user.role in ("admin", "tisch") else "single"
 
-    starter = (
+    starter_q = (
         db.query(PersonenHasWettkampf)
         .filter_by(Wettkampf_id=wid)
         .filter(PersonenHasWettkampf.Start_Status.in_(["Gemeldet", "Gestartet"]))
-        .order_by(PersonenHasWettkampf.Startnummer)
-        .all()
     )
+    if riege is not None:
+        if riege == 0:  # 0 = ohne Riege
+            starter_q = starter_q.filter(PersonenHasWettkampf.Riege_id.is_(None))
+        else:
+            starter_q = starter_q.filter(PersonenHasWettkampf.Riege_id == riege)
+    starter = starter_q.order_by(PersonenHasWettkampf.Startnummer).all()
 
     versuche = (
         db.query(EinzelErgebnis)
@@ -101,7 +106,8 @@ def geraet(request: Request, wid: int, gid: int,
                   versuch_map=versuch_map, wertung_map=wertung_map,
                   kriterien=strategy.required_kriterien,
                   num_judges=ghw.Erwartete_Kampfrichter,
-                  versuche_max=ghw.Anzahl_Versuche)
+                  versuche_max=ghw.Anzahl_Versuche,
+                  riege_filter=riege)
 
 
 @router.post("/{wid}/{gid}/save")

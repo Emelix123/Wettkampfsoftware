@@ -14,9 +14,20 @@
       · Kriterien: <code>{{ kriterien|join(', ') }}</code>
     </div>
   </div>
-  <div class="flex gap-2">
-    <a class="btn {{ 'btn-primary' if mode=='tisch' else 'btn-ghost' }}" href="?mode=tisch">Tisch-Modus</a>
-    <a class="btn {{ 'btn-primary' if mode=='single' else 'btn-ghost' }}" href="?mode=single">Single-Modus</a>
+  <div class="flex gap-2 items-center flex-wrap">
+    <form method="get" class="flex gap-1 items-center">
+      <input type="hidden" name="mode" value="{{ mode }}">
+      <label class="text-xs text-slate-500">Riege:</label>
+      <select class="input" name="riege" onchange="this.form.submit()">
+        <option value="">— alle —</option>
+        {% for r in wk.riegen %}
+          <option value="{{ r.idRiege }}" {% if riege_filter == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>
+        {% endfor %}
+        <option value="0" {% if riege_filter == 0 %}selected{% endif %}>(ohne Riege)</option>
+      </select>
+    </form>
+    <a class="btn {{ 'btn-primary' if mode=='tisch' else 'btn-ghost' }}" href="?mode=tisch{% if riege_filter is not none %}&riege={{ riege_filter }}{% endif %}">Tisch-Modus</a>
+    <a class="btn {{ 'btn-primary' if mode=='single' else 'btn-ghost' }}" href="?mode=single{% if riege_filter is not none %}&riege={{ riege_filter }}{% endif %}">Single-Modus</a>
   </div>
 </div>
 

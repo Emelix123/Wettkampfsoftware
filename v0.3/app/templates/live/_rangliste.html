@@ -2,7 +2,13 @@
   <h2 class="font-semibold mb-3">🏆 Einzelwertung</h2>
   <div class="overflow-x-auto">
   <table class="table">
-    <thead><tr><th>Platz</th><th>Athlet</th><th>Verein</th><th class="text-right">Geraete</th><th class="text-right">Score</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Platz</th><th>Athlet</th><th>Verein</th>
+        {% for g in geraete %}<th class="text-right">{{ g.Name }}</th>{% endfor %}
+        <th class="text-right">Gesamt</th>
+      </tr>
+    </thead>
     <tbody>
       {% for r in einzel %}
       <tr>
@@ -11,11 +17,16 @@
         </td>
         <td class="font-medium">{{ r.Nachname }}, {{ r.Vorname }}</td>
         <td>{{ r.Verein_Kuerzel or '—' }}</td>
-        <td class="text-right">{{ r.Anzahl_Geraete_Gewertet }}</td>
+        {% for g in geraete %}
+        <td class="text-right font-mono">
+          {% set s = r.geraete_scores.get(g.idGeraete) %}
+          {{ '%.3f' | format(s) if s is not none else '—' }}
+        </td>
+        {% endfor %}
         <td class="text-right font-mono font-semibold">{{ '%.3f' | format(r.GesamtScore|float) }}</td>
       </tr>
       {% else %}
-      <tr><td colspan="5" class="text-center text-slate-400 italic">Noch keine Wertungen.</td></tr>
+      <tr><td colspan="{{ 4 + geraete|length }}" class="text-center text-slate-400 italic">Noch keine Wertungen.</td></tr>
       {% endfor %}
     </tbody>
   </table>

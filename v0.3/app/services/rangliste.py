@@ -1,6 +1,8 @@
 """Helper rund um die VIEWs vw_Rangliste_Einzel und vw_Mannschaft_Score_All."""
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
+
+from models import Geraete, GeraeteHasWettkampf
 
 
 def einzel_rangliste(db: Session, wettkampf_id: int) -> list[dict]:
@@ -13,6 +15,47 @@ def einzel_rangliste(db: Session, wettkampf_id: int) -> list[dict]:
         ORDER BY Platz, Nachname
     """), {"wid": wettkampf_id}).mappings().all()
     return [dict(r) for r in rows]
+
+
+def geraete_des_wettkampfs(db: Session, wettkampf_id: int) -> list[Geraete]:
+    """Geraete in der Reihenfolge wie sie im Wettkampf zugeordnet sind."""
+    rows = (
+        db.query(Geraete, GeraeteHasWettkampf.Reihenfolge)
+        .join(GeraeteHasWettkampf, GeraeteHasWettkampf.Geraete_id == Geraete.idGeraete)
+        .filter(GeraeteHasWettkampf.Wettkampf_id == wettkampf_id)
+        .order_by(GeraeteHasWettkampf.Reihenfolge)
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
+def einzel_rangliste_mit_geraeten(db: Session, wettkampf_id: int) -> tuple[list[dict], list[Geraete]]:
+    """Gibt (rangliste, geraete) zurueck. Jede Zeile enthaelt zusaetzlich
+    `geraete_scores`: dict[geraet_id, BesterScore | None]."""
+    geraete = geraete_des_wettkampfs(db, wettkampf_id)
+    base = einzel_rangliste(db, wettkampf_id)
+    if not base:
+        return base, geraete
+    pids = [r["Personen_id"] for r in base]
+    rows = db.execute(
+        text("""
+            SELECT Personen_id, Geraete_id, BesterScore
+            FROM vw_Person_Geraet_Best
+            WHERE Wettkampf_id = :wid
+              AND Personen_id IN :pids
+        """).bindparams(bindparam('pids', expanding=True)),
+        {"wid": wettkampf_id, "pids": pids},
+    ).mappings().all()
+    by_pid: dict[int, dict[int, float]] = {}
+    for r in rows:
+        by_pid.setdefault(r["Personen_id"], {})[r["Geraete_id"]] = float(r["BesterScore"])
+    out = []
+    for r in base:
+        scores = by_pid.get(r["Personen_id"], {})
+        r2 = dict(r)
+        r2["geraete_scores"] = {g.idGeraete: scores.get(g.idGeraete) for g in geraete}
+        out.append(r2)
+    return out, geraete
 
 
 def mannschaft_rangliste(db: Session, wettkampf_id: int, top_n: int | None) -> list[dict]:
