@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Personen-Import{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3">
+  <h1 class="text-2xl font-bold">📥 Personen-Massen-Import</h1>
+  <a href="/personen" class="text-sm text-brand-600 hover:underline">← zur Personen-Liste</a>
+</div>
+
+<div class="card mb-4">
+  <h2 class="font-semibold mb-2">CSV-Format</h2>
+  <p class="text-sm text-slate-600 mb-2">
+    Die Datei muss eine Kopfzeile haben mit den Spalten (Reihenfolge egal):
+  </p>
+  <ul class="text-sm text-slate-700 list-disc ml-5 mb-2">
+    <li><code>Vorname</code> <span class="text-red-600">*Pflicht</span></li>
+    <li><code>Nachname</code> <span class="text-red-600">*Pflicht</span></li>
+    <li><code>Geburtsdatum</code> — Format <code>JJJJ-MM-TT</code> oder <code>TT.MM.JJJJ</code></li>
+    <li><code>Verein_Kuerzel</code> — wenn der Verein noch nicht existiert wird er automatisch angelegt</li>
+    <li><code>Geschlecht</code> — <code>m</code>, <code>w</code>, <code>d</code> oder leer</li>
+  </ul>
+  <p class="text-sm text-slate-600">Trennzeichen: Komma, Semikolon oder Tab — wird automatisch erkannt.</p>
+  <details class="mt-2 text-sm">
+    <summary class="cursor-pointer text-brand-600">Beispiel-CSV anzeigen</summary>
+    <pre class="bg-slate-100 p-3 rounded mt-2 text-xs overflow-x-auto">Vorname;Nachname;Geburtsdatum;Verein_Kuerzel;Geschlecht
+Max;Mustermann;2008-05-12;TVM;m
+Erika;Musterfrau;20.08.2007;SFB;w
+Jan;Beispiel;;;m</pre>
+  </details>
+</div>
+
+<div class="card mb-4">
+  <form method="post" action="/personen/import" enctype="multipart/form-data" class="space-y-3">
+    <div>
+      <label class="label">CSV-Datei</label>
+      <input class="input" type="file" name="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-ghost" name="modus" value="preview">Vorschau</button>
+      {% if preview %}<button class="btn btn-primary" name="modus" value="import">Wirklich importieren</button>{% endif %}
+    </div>
+  </form>
+</div>
+
+{% if errors %}
+<div class="card mb-4 border-amber-300 bg-amber-50">
+  <h3 class="font-semibold text-amber-800 mb-2">Hinweise / Warnungen ({{ errors|length }})</h3>
+  <ul class="text-sm text-amber-900 list-disc ml-5">
+    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if preview %}
+<div class="card mb-4">
+  <h3 class="font-semibold mb-2">Vorschau ({{ preview|length }} Personen)</h3>
+  {% if new_vereine %}
+  <p class="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded px-3 py-2 mb-3">
+    🆕 Diese Vereine werden automatisch angelegt: <strong>{{ new_vereine|join(', ') }}</strong>
+  </p>
+  {% endif %}
+  <div class="overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Vorname</th><th>Nachname</th><th>Geburtsdatum</th><th>Verein</th><th>Geschlecht</th></tr></thead>
+    <tbody>
+      {% for r in preview %}
+      <tr>
+        <td>{{ r.Vorname }}</td><td>{{ r.Nachname }}</td>
+        <td>{{ r.Geburtsdatum or '—' }}</td>
+        <td>{{ r.Verein_Kuerzel or '—' }}</td>
+        <td>{{ r.Geschlecht or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="text-xs text-slate-500 mt-3">⚠️ Beim Klick auf <strong>"Wirklich importieren"</strong> werden alle Eintraege ohne weitere Pruefung angelegt. Bei Tippfehlern Datei korrigieren und neu hochladen.</p>
+</div>
+{% endif %}
+{% endblock %}
