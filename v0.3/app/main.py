@@ -3,7 +3,6 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.exc import OperationalError
 from starlette.middleware.sessions import SessionMiddleware
 
 import settings
@@ -29,13 +28,22 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 def on_startup():
-    for _ in range(30):
+    """Wartet bis 90 Sekunden auf die DB und legt dann den Default-Admin an.
+    Faengt JEDEN Fehler ab (OperationalError, ProgrammingError vor dem
+    Init-Script-Lauf, Network-Errors) damit ein langsamer DB-Start nicht
+    dazu fuehrt dass nie ein Admin angelegt wird."""
+    last_err = None
+    for attempt in range(1, 91):
         try:
             ensure_default_admin()
+            print(f"[startup] Admin-Setup OK (Versuch {attempt}).")
             return
-        except OperationalError:
+        except Exception as e:
+            last_err = e
             time.sleep(1)
-    print("[startup] DB nicht erreichbar — Admin wird beim naechsten Login-Versuch angelegt.")
+    print(f"[startup] WARNUNG: Admin konnte nach 90s nicht angelegt werden. "
+          f"Letzter Fehler: {type(last_err).__name__}: {last_err}")
+    print("[startup] Manuell anlegen: docker compose exec app python create_admin.py")
 
 
 @app.exception_handler(HTTPException)
