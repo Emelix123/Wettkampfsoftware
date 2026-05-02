@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from auth import require_user
 from database import get_db
 from models import Personen, Verein
-from views import render, flash
+from views import render, flash, safe_delete
 
 router = APIRouter(prefix="/personen")
 
@@ -44,7 +44,6 @@ def delete_person(request: Request, pid: int,
                   db: Session = Depends(get_db),
                   user=Depends(require_user("admin"))):
     obj = db.get(Personen, pid)
-    if obj:
-        db.delete(obj); db.commit()
-        flash(request, "success", "Person geloescht.")
+    safe_delete(request, db, obj,
+                name=f"Person '{obj.Vorname} {obj.Nachname}'" if obj else None)
     return RedirectResponse("/personen", status_code=303)

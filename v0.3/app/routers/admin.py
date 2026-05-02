@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from auth import require_user, hash_password
 from database import get_db
 from models import Verein, Altersklasse, Geraete, BerechnungsArt, User
-from views import render, flash
+from views import render, flash, safe_delete
 
 router = APIRouter(prefix="/admin", dependencies=[Depends(require_user("admin"))])
 
@@ -43,10 +43,7 @@ def vereine_create(request: Request,
 @router.post("/vereine/{vid}/delete")
 def vereine_delete(request: Request, vid: int, db: Session = Depends(get_db)):
     obj = db.get(Verein, vid)
-    if obj:
-        db.delete(obj)
-        db.commit()
-        flash(request, "success", f"Verein '{obj.Kuerzel}' geloescht.")
+    safe_delete(request, db, obj, name=f"Verein '{obj.Kuerzel}'" if obj else None)
     return RedirectResponse("/admin/vereine", status_code=303)
 
 
@@ -78,9 +75,7 @@ def altersklassen_create(request: Request,
 @router.post("/altersklassen/{aid}/delete")
 def altersklassen_delete(request: Request, aid: int, db: Session = Depends(get_db)):
     obj = db.get(Altersklasse, aid)
-    if obj:
-        db.delete(obj)
-        db.commit()
+    safe_delete(request, db, obj, name=f"Altersklasse '{obj.Kuerzel}'" if obj else None)
     return RedirectResponse("/admin/altersklassen", status_code=303)
 
 
@@ -107,9 +102,7 @@ def geraete_create(request: Request,
 @router.post("/geraete/{gid}/delete")
 def geraete_delete(request: Request, gid: int, db: Session = Depends(get_db)):
     obj = db.get(Geraete, gid)
-    if obj:
-        db.delete(obj)
-        db.commit()
+    safe_delete(request, db, obj, name=f"Geraet '{obj.Name}'" if obj else None)
     return RedirectResponse("/admin/geraete", status_code=303)
 
 
@@ -146,9 +139,8 @@ def berechnungen_create(request: Request,
 @router.post("/berechnungen/{bid}/delete")
 def berechnungen_delete(request: Request, bid: int, db: Session = Depends(get_db)):
     obj = db.get(BerechnungsArt, bid)
-    if obj:
-        db.delete(obj)
-        db.commit()
+    safe_delete(request, db, obj,
+                name=f"Berechnungs-Art '{obj.Regel_Kuerzel}'" if obj else None)
     return RedirectResponse("/admin/berechnungen", status_code=303)
 
 

@@ -157,14 +157,32 @@ async def save(request: Request, wid: int, gid: int,
             continue
         slot_data.setdefault(slot, {})[krit] = wert
 
+    # Single-Mode (kampfrichter): nur die EIGENE Wertung speichern.
+    # Slot-Logik:
+    #   - hat dieser User schon eine Wertung fuer diesen Versuch? -> denselben Slot ueberschreiben
+    #   - sonst: naechsten freien Slot vergeben (1..N), kollidiert nicht mit anderen Richtern
     if user.role == "kampfrichter":
-        # Eigener Slot: nutze user.id modulo, aber stabil: nimm einfach 1
-        # und merke user als Richter_user_id (Eindeutigkeit ueber Slot ist
-        # bereits durch UQ_KW_Ergebnis_Slot gesichert).
-        if 1 in slot_data:
-            slot_data = {1: slot_data[1]}
-        else:
+        eingabe_slot_keys = list(slot_data.keys())
+        if not eingabe_slot_keys:
             return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+        # Ignoriere alle Slots ausser dem ersten (Single-Mode-Form hat eh nur slot1)
+        eingabe_kv = slot_data[eingabe_slot_keys[0]]
+
+        own = (
+            db.query(KampfrichterWertung)
+            .filter_by(Einzel_Ergebnis_id=ee.idEinzel_Ergebnis, Richter_user_id=user.id)
+            .first()
+        )
+        if own:
+            target_slot = own.Richter_Slot
+        else:
+            used = {
+                w.Richter_Slot for w in
+                db.query(KampfrichterWertung)
+                .filter_by(Einzel_Ergebnis_id=ee.idEinzel_Ergebnis).all()
+            }
+            target_slot = next(s for s in range(1, 100) if s not in used)
+        slot_data = {target_slot: eingabe_kv}
 
     for slot, kv in slot_data.items():
         if not kv:

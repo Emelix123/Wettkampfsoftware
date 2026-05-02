@@ -65,11 +65,14 @@
           </td>
           {% endif %}
           <td>
-            <select class="input" name="Start_Status">
+            <select class="input" name="Start_Status" onchange="this.closest('tr').querySelector('.grund-input').classList.toggle('hidden', !['Zurueckgezogen','Disqualifiziert'].includes(this.value))">
               {% for s in ['Gemeldet','Gestartet','Zurueckgezogen','Disqualifiziert'] %}
                 <option value="{{ s }}" {% if a.Start_Status==s %}selected{% endif %}>{{ s }}</option>
               {% endfor %}
             </select>
+            <input class="input mt-1 grund-input {% if a.Start_Status not in ['Zurueckgezogen','Disqualifiziert'] %}hidden{% endif %}"
+                   type="text" name="Status_Grund" value="{{ a.Status_Grund or '' }}"
+                   placeholder="Grund (DQ / Rueckzug)">
           </td>
           <td class="text-right whitespace-nowrap">
             <button class="btn btn-ghost">speichern</button>
