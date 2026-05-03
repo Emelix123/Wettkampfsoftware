@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -63,6 +63,36 @@ def delete_tag(request: Request, tid: int,
     obj = db.get(WettkampfTag, tid)
     safe_delete(request, db, obj, name=f"Wettkampftag '{obj.Name}'" if obj else None)
     return RedirectResponse("/tage", status_code=303)
+
+
+@router.post("/{tid}/logo")
+async def upload_logo(request: Request, tid: int,
+                      logo: UploadFile = File(...),
+                      db: Session = Depends(get_db),
+                      user=Depends(require_user("admin"))):
+    obj = db.get(WettkampfTag, tid)
+    if obj:
+        data = await logo.read()
+        if len(data) > 2_000_000:
+            flash(request, "error", "Logo darf max. 2 MB sein.")
+        else:
+            obj.Logo = data
+            obj.Logo_MimeType = logo.content_type or "image/png"
+            db.commit()
+            flash(request, "success", "Logo gespeichert.")
+    return RedirectResponse(f"/tage/{tid}", status_code=303)
+
+
+@router.post("/{tid}/logo/delete")
+def delete_logo(request: Request, tid: int,
+                db: Session = Depends(get_db),
+                user=Depends(require_user("admin"))):
+    obj = db.get(WettkampfTag, tid)
+    if obj:
+        obj.Logo = None
+        obj.Logo_MimeType = None
+        db.commit()
+    return RedirectResponse(f"/tage/{tid}", status_code=303)
 
 
 @router.get("/{tid}")

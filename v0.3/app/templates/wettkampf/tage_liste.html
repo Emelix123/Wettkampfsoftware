@@ -31,7 +31,12 @@
         {% endif %}
       </li>
       {% else %}
-      <li class="py-6 text-center text-slate-400 italic">Noch keine Wettkampftage.</li>
+      <li class="py-8 text-center text-slate-500">
+        <div class="text-4xl mb-2">📅</div>
+        <div class="font-medium">Noch kein Wettkampftag angelegt</div>
+        {% if user.role == 'admin' %}<div class="text-sm mt-1">Lege links einen neuen Wettkampftag an, danach kannst du dort einzelne Wettkaempfe hinzufuegen.</div>
+        {% else %}<div class="text-sm mt-1">Bitte den Admin um die Anlage eines Wettkampftags.</div>{% endif %}
+      </li>
       {% endfor %}
     </ul>
   </div>

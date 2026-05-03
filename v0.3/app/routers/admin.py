@@ -1,8 +1,8 @@
 """Stammdaten-Verwaltung (nur Admin)."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from auth import require_user, hash_password
@@ -87,6 +87,34 @@ def vereine_update(request: Request, vid: int,
 def vereine_delete(request: Request, vid: int, db: Session = Depends(get_db)):
     obj = db.get(Verein, vid)
     safe_delete(request, db, obj, name=f"Verein '{obj.Kuerzel}'" if obj else None)
+    return RedirectResponse("/admin/vereine", status_code=303)
+
+
+# Logo upload + delete (Verein)
+@router.post("/vereine/{vid}/logo")
+async def verein_logo_upload(request: Request, vid: int,
+                             logo: UploadFile = File(...),
+                             db: Session = Depends(get_db)):
+    obj = db.get(Verein, vid)
+    if obj:
+        data = await logo.read()
+        if len(data) > 2_000_000:
+            flash(request, "error", "Logo darf max. 2 MB sein.")
+        else:
+            obj.Logo = data
+            obj.Logo_MimeType = logo.content_type or "image/png"
+            db.commit()
+            flash(request, "success", f"Logo fuer '{obj.Kuerzel}' gespeichert.")
+    return RedirectResponse("/admin/vereine", status_code=303)
+
+
+@router.post("/vereine/{vid}/logo/delete")
+def verein_logo_delete(request: Request, vid: int, db: Session = Depends(get_db)):
+    obj = db.get(Verein, vid)
+    if obj:
+        obj.Logo = None
+        obj.Logo_MimeType = None
+        db.commit()
     return RedirectResponse("/admin/vereine", status_code=303)
 
 

@@ -7,6 +7,7 @@
 {% block content %}
 {% for r in einzel %}
 <div class="urkunde">
+  {% if logo_url %}<img src="{{ logo_url }}" style="max-height:60mm; margin-bottom: 8mm;">{% endif %}
   <h1>🏅 Urkunde</h1>
   <div style="font-size:14pt; color:#555;">{{ wk.tag.Name }}</div>
   <div style="font-size:12pt; color:#777; margin-bottom: 24pt;">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</div>

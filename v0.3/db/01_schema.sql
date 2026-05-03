@@ -20,10 +20,12 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Verein
 -- -----------------------------------------------------
 CREATE TABLE `Verein` (
-    `idVerein` INT          NOT NULL AUTO_INCREMENT,
-    `Kuerzel`  VARCHAR(10)  NOT NULL,
-    `Name`     VARCHAR(120) NOT NULL,
-    `Ort`      VARCHAR(80)  NULL,
+    `idVerein`      INT          NOT NULL AUTO_INCREMENT,
+    `Kuerzel`       VARCHAR(10)  NOT NULL,
+    `Name`          VARCHAR(120) NOT NULL,
+    `Ort`           VARCHAR(80)  NULL,
+    `Logo`          MEDIUMBLOB   NULL,
+    `Logo_MimeType` VARCHAR(60)  NULL,
     PRIMARY KEY (`idVerein`),
     UNIQUE KEY `UQ_Verein_Kuerzel` (`Kuerzel`)
 ) ENGINE = InnoDB;
@@ -52,6 +54,8 @@ CREATE TABLE `Wettkampf_Tag` (
     `Ort`             VARCHAR(120) NULL,
     `Veranstalter`    VARCHAR(120) NULL,
     `Erstellt_Am`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `Logo`            MEDIUMBLOB   NULL,
+    `Logo_MimeType`   VARCHAR(60)  NULL,
     PRIMARY KEY (`idWettkampf_Tag`)
 ) ENGINE = InnoDB;
 

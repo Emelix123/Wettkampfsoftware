@@ -21,15 +21,34 @@
     </div>
   </form>
   {% else %}
-  <div class="flex justify-between items-start">
-    <div>
-      <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
-      <div class="text-slate-500 mt-1">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+  <div class="flex justify-between items-start gap-3">
+    <div class="flex items-center gap-3">
+      {% if tag.Logo %}<img src="/media/wettkampftag/{{ tag.idWettkampf_Tag }}/logo" style="max-height:60px;" alt="Logo">{% endif %}
+      <div>
+        <h1 class="text-2xl font-bold">{{ tag.Name }}</h1>
+        <div class="text-slate-500 mt-1">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
+      </div>
     </div>
     {% if user.role == 'admin' %}<a class="btn btn-ghost" href="?edit=1">bearbeiten</a>{% endif %}
   </div>
+  {% if user.role == 'admin' %}
+  <details class="mt-3">
+    <summary class="text-xs text-slate-500 cursor-pointer">Logo verwalten</summary>
+    <div class="mt-2 p-3 bg-slate-50 border rounded flex gap-2 items-center flex-wrap">
+      <form method="post" action="/tage/{{ tag.idWettkampf_Tag }}/logo" enctype="multipart/form-data" class="flex gap-2 items-center">
+        {{ csrf_input(request) }}
+        <input class="input" type="file" name="logo" accept="image/*" required>
+        <button class="btn btn-primary">hochladen</button>
+      </form>
+      {% if tag.Logo %}
+      <form method="post" action="/tage/{{ tag.idWettkampf_Tag }}/logo/delete">{{ csrf_input(request) }}<button class="btn btn-ghost">Logo entfernen</button></form>
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
   <div class="mt-3 flex gap-2">
     <a class="btn btn-ghost" href="/live/tag/{{ tag.idWettkampf_Tag }}">📺 Live-Ansicht</a>
+    <a class="btn btn-ghost" href="/live/tag/{{ tag.idWettkampf_Tag }}/riegen">📋 Riegen-Uebersicht</a>
     <a class="btn btn-ghost" href="/export/tag/{{ tag.idWettkampf_Tag }}/ergebnisse.pdf" target="_blank">📄 Gesamt-PDF</a>
   </div>
   {% endif %}

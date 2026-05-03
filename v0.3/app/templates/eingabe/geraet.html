@@ -57,7 +57,7 @@
         </div>
         <div class="overflow-x-auto">
         <table class="table">
-          <thead><tr><th>Richter</th>{% for k in kriterien %}<th>{{ k }}</th>{% endfor %}<th class="w-24">Aktion</th></tr></thead>
+          <thead><tr><th>Richter</th>{% for k in kriterien %}<th>{{ k }}</th>{% endfor %}<th></th><th class="w-24">Aktion</th></tr></thead>
           <tbody>
             {% for slot in range(1, num_judges + 1) %}
             <tr>
@@ -66,6 +66,13 @@
               <td><input class="input" name="slot{{ slot }}__{{ k }}" type="text" inputmode="decimal"
                          value="{{ slots.get(slot, {}).get(k, '') }}"></td>
               {% endfor %}
+              <td>
+                {% if slots.get(slot) %}
+                  <button type="submit" formaction="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/slot/delete" class="btn btn-ghost text-xs"
+                          name="slot" value="{{ slot }}"
+                          onclick="return confirm('Wertung von R{{ slot }} loeschen?')">x R{{ slot }}</button>
+                {% endif %}
+              </td>
               {% if loop.first %}
               <td rowspan="{{ num_judges }}" class="align-middle">
                 <label class="text-xs flex items-center gap-1"><input type="checkbox" name="ist_gueltig" value="1" {% if not ee or ee.Ist_Gueltig %}checked{% endif %}> gueltig</label>

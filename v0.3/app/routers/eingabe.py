@@ -230,6 +230,45 @@ async def save(request: Request, wid: int, gid: int,
     return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
 
 
+@router.post("/{wid}/{gid}/slot/delete")
+async def slot_delete(request: Request, wid: int, gid: int,
+                      db: Session = Depends(get_db),
+                      user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
+    """Loescht eine einzelne Richter-Wertung (1 Slot) und rechnet neu durch.
+    Im Kampfrichter-Mode darf nur die EIGENE Wertung geloescht werden."""
+    form = dict(await request.form())
+    pid = int(form.get("pid", "0"))
+    versuch = int(form.get("versuch", "1"))
+    slot = int(form.get("slot", "0"))
+    ee = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid,
+                   Personen_id=pid, Versuch_Nr=versuch).first()
+    )
+    if not ee:
+        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    w = (
+        db.query(KampfrichterWertung)
+        .filter_by(Einzel_Ergebnis_id=ee.idEinzel_Ergebnis, Richter_Slot=slot)
+        .first()
+    )
+    if not w:
+        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    if user.role == "kampfrichter" and w.Richter_user_id != user.id:
+        flash(request, "error", "Du kannst nur deine eigene Wertung loeschen.")
+        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    db.delete(w); db.commit()
+    recalc_versuch(db, ee)
+    from services import audit
+    audit.log(db, user, "wertung.slot_delete",
+              "KampfrichterWertung", w.idWertung,
+              {"wettkampf_id": wid, "geraet_id": gid,
+               "person_id": pid, "versuch": versuch, "slot": slot})
+    await CHANNEL.publish(wid)
+    flash(request, "success", f"Slot R{slot} geloescht und neu berechnet.")
+    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+
+
 @router.post("/{wid}/{gid}/clear")
 async def clear_versuch(request: Request, wid: int, gid: int,
                         db: Session = Depends(get_db),

@@ -35,10 +35,26 @@
           </tr>
           {% else %}
           <tr>
-            <td><span class="badge">{{ v.Kuerzel }}</span></td>
+            <td>
+              <span class="badge">{{ v.Kuerzel }}</span>
+              {% if v.Logo %}<img src="/media/verein/{{ v.idVerein }}/logo" style="max-height:24px; vertical-align:middle; margin-left:4px;" alt="Logo">{% endif %}
+            </td>
             <td>{{ v.Name }}</td>
             <td class="text-slate-500">{{ v.Ort or '—' }}</td>
             <td class="text-right whitespace-nowrap">
+              <details class="inline-block">
+                <summary class="btn btn-ghost text-xs cursor-pointer">Logo</summary>
+                <div class="mt-1 p-2 bg-slate-50 border rounded">
+                  <form method="post" action="/admin/vereine/{{ v.idVerein }}/logo" enctype="multipart/form-data" class="flex gap-1 items-center">
+                    {{ csrf_input(request) }}
+                    <input class="input" type="file" name="logo" accept="image/*" required>
+                    <button class="btn btn-primary text-xs">hochladen</button>
+                  </form>
+                  {% if v.Logo %}
+                  <form method="post" action="/admin/vereine/{{ v.idVerein }}/logo/delete" class="mt-1 inline">{{ csrf_input(request) }}<button class="btn btn-ghost text-xs">Logo entfernen</button></form>
+                  {% endif %}
+                </div>
+              </details>
               <a href="?edit={{ v.idVerein }}" class="btn btn-ghost">bearbeiten</a>
               <form method="post" action="/admin/vereine/{{ v.idVerein }}/delete" class="inline" onsubmit="return confirm('Verein wirklich loeschen?')">
                 {{ csrf_input(request) }}

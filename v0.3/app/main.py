@@ -13,7 +13,7 @@ from csrf import csrf_dep, install_template_global
 from routers import (
     auth as auth_router,
     dashboard, admin, wettkampftag, wettkampf, personen,
-    anmeldung, eingabe, live, export,
+    anmeldung, eingabe, live, export, media,
 )
 from views import templates
 
@@ -87,6 +87,7 @@ app.include_router(anmeldung.router)
 app.include_router(eingabe.router)
 app.include_router(live.router)
 app.include_router(export.router)
+app.include_router(media.router)
 
 
 @app.get("/healthz")

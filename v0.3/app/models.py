@@ -2,9 +2,10 @@ from datetime import date, datetime, time
 from typing import Optional, List
 
 from sqlalchemy import (
-    Column, Integer, String, Date, DateTime, Time, Enum, ForeignKey,
+    Column, Integer, String, Date, DateTime, LargeBinary, Time, Enum, ForeignKey,
     JSON, Numeric, SmallInteger, UniqueConstraint, ForeignKeyConstraint, text,
 )
+from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from database import Base
@@ -16,6 +17,8 @@ class Verein(Base):
     Kuerzel: Mapped[str] = mapped_column(String(10), unique=True)
     Name: Mapped[str] = mapped_column(String(120))
     Ort: Mapped[Optional[str]] = mapped_column(String(80))
+    Logo: Mapped[Optional[bytes]] = mapped_column(MEDIUMBLOB, nullable=True)
+    Logo_MimeType: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
 
 
 class Altersklasse(Base):
@@ -38,6 +41,8 @@ class WettkampfTag(Base):
     Ort: Mapped[Optional[str]] = mapped_column(String(120))
     Veranstalter: Mapped[Optional[str]] = mapped_column(String(120))
     Erstellt_Am: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
+    Logo: Mapped[Optional[bytes]] = mapped_column(MEDIUMBLOB, nullable=True)
+    Logo_MimeType: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
 
     wettkaempfe: Mapped[List["Wettkampf"]] = relationship(
         back_populates="tag", cascade="all, delete-orphan"

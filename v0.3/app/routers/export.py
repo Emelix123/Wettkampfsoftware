@@ -6,6 +6,7 @@ Routen:
   /export/wettkampf/{wid}/urkunden.pdf
   /export/tag/{tid}/ergebnisse.pdf
 """
+import base64
 import csv
 import io
 import json
@@ -29,6 +30,12 @@ from services.backup import snapshot_tag
 from views import templates as jinja
 
 router = APIRouter(prefix="/export")
+
+
+def _logo_data_url(blob: bytes | None, mime: str | None) -> str | None:
+    if not blob:
+        return None
+    return f"data:{mime or 'image/png'};base64,{base64.b64encode(blob).decode()}"
 
 
 def _render_pdf(template_name: str, **ctx) -> bytes:
@@ -98,7 +105,8 @@ def urkunden(wid: int,
         einzel = [r for r in einzel if r["Platz"] <= top]
     # nur Athleten mit echtem Score
     einzel = [r for r in einzel if (r.get("GesamtScore") or 0) > 0]
-    pdf = _render_pdf("pdf/urkunden.html", wk=wk, einzel=einzel)
+    logo_url = _logo_data_url(wk.tag.Logo, wk.tag.Logo_MimeType)
+    pdf = _render_pdf("pdf/urkunden.html", wk=wk, einzel=einzel, logo_url=logo_url)
     suffix = f"-top{top}" if top else ""
     return _pdf_response(pdf, f"urkunden-wk{wid}{suffix}.pdf")
 

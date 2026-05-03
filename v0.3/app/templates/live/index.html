@@ -10,7 +10,11 @@
     <div class="text-sm text-slate-500">{{ t.Wettkampf_Datum }} · {{ t.Ort or '—' }}</div>
   </a>
   {% else %}
-  <p class="text-slate-400 italic">Noch keine Wettkampftage.</p>
+  <div class="card text-center text-slate-500">
+    <div class="text-4xl mb-2">📺</div>
+    <div class="font-medium">Noch kein Wettkampftag verfuegbar</div>
+    <div class="text-sm mt-1">Sobald der Veranstalter einen Wettkampftag angelegt hat, erscheint er hier.</div>
+  </div>
   {% endfor %}
 </div>
 {% endblock %}

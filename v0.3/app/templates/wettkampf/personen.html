@@ -82,7 +82,17 @@
             </td>
           </tr>
           {% endif %}
-        {% else %}<tr><td colspan="6" class="text-center text-slate-400 italic">Keine Personen gefunden.</td></tr>{% endfor %}
+        {% else %}<tr><td colspan="6" class="text-center text-slate-500 py-6">
+          {% if q %}
+            <div class="text-3xl mb-1">🔍</div>
+            <div>Keine Person passt zu "<strong>{{ q }}</strong>".</div>
+            <a href="/personen" class="btn btn-ghost mt-2">Filter zuruecksetzen</a>
+          {% else %}
+            <div class="text-3xl mb-1">🤸</div>
+            <div class="font-medium">Noch keine Personen angelegt</div>
+            <div class="text-sm mt-1">Lege links eine Person einzeln an, oder benutze oben den <strong>Massen-Import</strong> fuer eine CSV-Datei.</div>
+          {% endif %}
+        </td></tr>{% endfor %}
       </tbody>
     </table>
 
