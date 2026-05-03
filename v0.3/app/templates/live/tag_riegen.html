@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Riegen-Uebersicht — {{ tag.Name }}{% endblock %}
+{% block content %}
+<a href="/live/tag/{{ tag.idWettkampf_Tag }}" class="text-sm text-brand-600 hover:underline">← {{ tag.Name }}</a>
+<h1 class="text-2xl font-bold my-4">📋 Riegen-Uebersicht — {{ tag.Name }}</h1>
+
+<p class="text-sm text-slate-600 mb-4">
+  Fuer jede Riege wird angezeigt wie viele Mitglieder an welchem Geraet schon einen Versuch eingetragen haben:
+  grau = noch nicht angetreten · gelb = laeuft · gruen = alle Mitglieder fertig.
+</p>
+
+{% from 'live/_riegen_macro.html' import render_riegen %}
+
+{% for w in tag.wettkaempfe %}
+  {% if w.riegen %}
+  <section class="card mb-4">
+    <h2 class="font-semibold mb-3">{{ w.Wettkampf_Nr }} · {{ w.Name }}
+      <span class="text-xs text-slate-500 font-normal">— {{ w.altersklasse.Kuerzel }}</span>
+    </h2>
+    {{ render_riegen(w, fortschritt_per_wk.get(w.idWettkampf, {})) }}
+  </section>
+  {% endif %}
+{% else %}
+  <p class="text-slate-400 italic text-center">Noch keine Wettkaempfe an diesem Tag.</p>
+{% endfor %}
+{% endblock %}

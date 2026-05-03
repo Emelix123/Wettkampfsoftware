@@ -37,6 +37,9 @@ async def csrf_dep(request: Request) -> None:
         return
     if request.url.path.startswith("/static"):
         return
+    # WebSocket-Routen brauchen kein CSRF — sie haben eigene Auth-Modelle
+    if request.url.path.endswith("/ws"):
+        return
 
     # Form lesen — Starlette cached das auf request._form, sodass die
     # eigentliche Route via await request.form() bzw. Form(...) den

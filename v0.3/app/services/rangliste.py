@@ -5,6 +5,54 @@ from sqlalchemy.orm import Session
 from models import Geraete, GeraeteHasWettkampf
 
 
+def riegen_fortschritt(db: Session, wettkampf_id: int) -> dict:
+    """Gibt fuer jede Riege im Wettkampf zurueck: an welchen Geraeten wieviele
+    Versuche schon eingetragen sind. Zur 'Wo ist welche Riege gerade'-Anzeige.
+    Returns: {riege_id: {'bezeichnung': str, 'start_zeit': time|None,
+                          'mitglieder': int, 'pro_geraet': {geraet_id: count}}}
+    """
+    rows = db.execute(text("""
+        SELECT
+            phw.Riege_id, COUNT(DISTINCT phw.Personen_id) AS mitglieder
+        FROM Personen_has_Wettkampf phw
+        WHERE phw.Wettkampf_id = :wid
+          AND phw.Riege_id IS NOT NULL
+        GROUP BY phw.Riege_id
+    """), {"wid": wettkampf_id}).mappings().all()
+    mitglieder = {r["Riege_id"]: r["mitglieder"] for r in rows}
+
+    rows = db.execute(text("""
+        SELECT
+            phw.Riege_id, ee.Geraete_id,
+            COUNT(DISTINCT ee.Personen_id) AS personen_mit_versuch
+        FROM Einzel_Ergebnis ee
+        JOIN Personen_has_Wettkampf phw
+              ON phw.Personen_id   = ee.Personen_id
+             AND phw.Wettkampf_id  = ee.Wettkampf_id
+        WHERE ee.Wettkampf_id = :wid
+          AND phw.Riege_id IS NOT NULL
+        GROUP BY phw.Riege_id, ee.Geraete_id
+    """), {"wid": wettkampf_id}).mappings().all()
+    pro_geraet: dict = {}
+    for r in rows:
+        pro_geraet.setdefault(r["Riege_id"], {})[r["Geraete_id"]] = r["personen_mit_versuch"]
+
+    from models import Riege
+    riegen = (
+        db.query(Riege).filter_by(Wettkampf_id=wettkampf_id)
+        .order_by(Riege.Start_Zeit, Riege.Bezeichnung).all()
+    )
+    out = {}
+    for r in riegen:
+        out[r.idRiege] = {
+            "bezeichnung": r.Bezeichnung,
+            "start_zeit": r.Start_Zeit,
+            "mitglieder": mitglieder.get(r.idRiege, 0),
+            "pro_geraet": pro_geraet.get(r.idRiege, {}),
+        }
+    return out
+
+
 def einzel_rangliste(db: Session, wettkampf_id: int) -> list[dict]:
     rows = db.execute(text("""
         SELECT Platz, Personen_id, Vorname, Nachname, Geschlecht,

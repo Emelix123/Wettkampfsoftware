@@ -15,7 +15,9 @@
         <td>
           {% if r.Platz == 1 %}🥇{% elif r.Platz == 2 %}🥈{% elif r.Platz == 3 %}🥉{% else %}{{ r.Platz }}{% endif %}
         </td>
-        <td class="font-medium">{{ r.Nachname }}, {{ r.Vorname }}</td>
+        <td class="font-medium">
+          <a href="/live/wettkampf/{{ wk.idWettkampf }}/athlet/{{ r.Personen_id }}" class="hover:underline text-brand-700">{{ r.Nachname }}, {{ r.Vorname }}</a>
+        </td>
         <td>{{ r.Verein_Kuerzel or '—' }}</td>
         {% for g in geraete %}
         <td class="text-right font-mono">

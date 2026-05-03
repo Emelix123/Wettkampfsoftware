@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from auth import require_user
 from database import get_db
+from live_pubsub import CHANNEL
 from models import (
     Wettkampf, GeraeteHasWettkampf, PersonenHasWettkampf,
     EinzelErgebnis, KampfrichterWertung, KampfrichterWertungDetail,
@@ -215,6 +216,9 @@ async def save(request: Request, wid: int, gid: int,
         db.commit()
 
     recalc_versuch(db, ee)
+    # Live-Subscriber benachrichtigen — Rangliste in allen offenen Tabs
+    # aktualisiert sich sofort via WebSocket-Trigger.
+    await CHANNEL.publish(wid)
     flash(request, "success", f"Versuch {versuch} fuer Startnummer/Person #{pid} gespeichert.")
     return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
 
@@ -232,5 +236,6 @@ async def clear_versuch(request: Request, wid: int, gid: int,
     )
     if ee:
         db.delete(ee); db.commit()
+        await CHANNEL.publish(wid)
         flash(request, "success", "Versuch geloescht.")
     return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)

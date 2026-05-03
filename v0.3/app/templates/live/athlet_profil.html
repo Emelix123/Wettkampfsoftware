@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ person.Vorname }} {{ person.Nachname }} — Profil{% endblock %}
+{% block content %}
+<a href="/live" class="text-sm text-brand-600 hover:underline">← Live-Ansicht</a>
+<div class="card my-4">
+  <h1 class="text-2xl font-bold">{{ person.Vorname }} {{ person.Nachname }}</h1>
+  <div class="text-slate-500 text-sm">
+    {% if person.verein %}{{ person.verein.Kuerzel }} — {{ person.verein.Name }}{% endif %}
+    {% if person.Geburtsdatum %} · *{{ person.Geburtsdatum }}{% endif %}
+    {% if person.Geschlecht %} · {{ person.Geschlecht }}{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="font-semibold mb-3">Wettkaempfe ({{ teilnahmen|length }})</h2>
+  <table class="table">
+    <thead><tr><th>Wettkampf</th><th>Tag</th><th>Status</th><th class="text-right">Platz</th><th class="text-right">Score</th><th></th></tr></thead>
+    <tbody>
+      {% for t in teilnahmen %}
+      {% set s = stats.get(t.Wettkampf_id, {}) %}
+      <tr>
+        <td class="font-medium">{{ t.wettkampf.Wettkampf_Nr }} · {{ t.wettkampf.Name }}</td>
+        <td>{{ t.wettkampf.tag.Wettkampf_Datum }}</td>
+        <td><span class="badge">{{ t.Start_Status }}</span></td>
+        <td class="text-right">{{ s.Platz or '—' }}</td>
+        <td class="text-right font-mono">{{ '%.3f' | format(s.GesamtScore|float) if s.GesamtScore is not none else '—' }}</td>
+        <td class="text-right">
+          <a class="btn btn-ghost" href="/live/wettkampf/{{ t.Wettkampf_id }}/athlet/{{ person.idPersonen }}">Details</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-slate-400 italic">Noch keine Teilnahmen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

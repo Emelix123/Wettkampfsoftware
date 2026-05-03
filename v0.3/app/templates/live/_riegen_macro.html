@@ -1,0 +1,40 @@
+{% macro render_riegen(wk, fortschritt) %}
+{% set sorted_geraete = wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+<div class="overflow-x-auto">
+<table class="table">
+  <thead>
+    <tr>
+      <th>Riege</th><th>Startzeit</th><th class="text-right">Mitglieder</th>
+      {% for g in sorted_geraete %}<th class="text-center">{{ g.geraet.Name }}</th>{% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in wk.riegen|sort(attribute='Start_Zeit') %}
+    {% set rdata = fortschritt.get(r.idRiege, {}) %}
+    <tr>
+      <td class="font-medium">{{ r.Bezeichnung }}</td>
+      <td>{{ r.Start_Zeit or '—' }}</td>
+      <td class="text-right">{{ rdata.get('mitglieder', 0) }}</td>
+      {% for g in sorted_geraete %}
+      {% set done = rdata.get('pro_geraet', {}).get(g.Geraete_id, 0) %}
+      {% set total = rdata.get('mitglieder', 0) %}
+      <td class="text-center">
+        {% if total == 0 %}
+          <span class="text-slate-400">—</span>
+        {% elif done == 0 %}
+          <span class="badge">0/{{ total }}</span>
+        {% elif done < total %}
+          <span class="badge badge-amber">{{ done }}/{{ total }}</span>
+        {% else %}
+          <span class="badge badge-green">✓ {{ done }}/{{ total }}</span>
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+  {% else %}
+    <tr><td colspan="{{ 3 + sorted_geraete|length }}" class="text-slate-400 italic text-center">Keine Riegen.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}

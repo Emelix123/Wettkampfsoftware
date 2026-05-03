@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ person.Vorname }} {{ person.Nachname }} — {{ wk.Name }}{% endblock %}
+{% block content %}
+<a href="/live/wettkampf/{{ wk.idWettkampf }}" class="text-sm text-brand-600 hover:underline">← {{ wk.Name }}</a>
+<div class="card my-4">
+  <h1 class="text-2xl font-bold">{{ person.Vorname }} {{ person.Nachname }}</h1>
+  <div class="text-slate-500 text-sm">
+    {% if person.verein %}{{ person.verein.Kuerzel }} — {{ person.verein.Name }} · {% endif %}
+    {{ wk.Wettkampf_Nr }} · {{ wk.Name }}
+    {% if person.idPersonen %}<a class="ml-2 text-brand-600 hover:underline" href="/live/athlet/{{ person.idPersonen }}">→ Profil &amp; alle Wettkaempfe</a>{% endif %}
+  </div>
+</div>
+
+{% if not by_geraet %}
+<div class="card text-center text-slate-400 italic">Noch keine Wertungen.</div>
+{% endif %}
+
+{% for ghw in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+  {% set versuche = by_geraet.get(ghw.Geraete_id, []) %}
+  <section class="card mb-4">
+    <h2 class="font-semibold mb-2">{{ ghw.Reihenfolge }}. {{ ghw.geraet.Name }}
+      <span class="text-xs text-slate-500 font-normal">· {{ ghw.berechnung.Bezeichnung }} · {{ ghw.Erwartete_Kampfrichter }} Richter</span>
+    </h2>
+    {% if versuche %}
+      {% for ee in versuche %}
+      <div class="border border-slate-200 rounded p-3 mb-2 {% if not ee.Ist_Gueltig %}bg-red-50{% endif %}">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="font-medium">Versuch {{ ee.Versuch_Nr }}</span>
+          {% if ee.Score is not none %}
+            <span class="badge badge-green">Score: {{ '%.3f' | format(ee.Score|float) }}</span>
+          {% else %}
+            <span class="badge badge-amber">{{ ee.Status }}</span>
+          {% endif %}
+          {% if not ee.Ist_Gueltig %}<span class="badge badge-red">Fehlversuch</span>{% endif %}
+          <span class="text-xs text-slate-500 ml-auto">{{ ee.Erfasst_Am }}</span>
+        </div>
+        {% if ee.wertungen %}
+        <table class="table">
+          <thead><tr><th>Richter</th>
+            {% set first = ee.wertungen[0] %}
+            {% for d in first.details %}<th>{{ d.Kriterium }}</th>{% endfor %}
+          </tr></thead>
+          <tbody>
+            {% for w in ee.wertungen|sort(attribute='Richter_Slot') %}
+            <tr>
+              <td class="font-medium">R{{ w.Richter_Slot }}</td>
+              {% set kv = {} %}
+              {% for d in w.details %}{% set _ = kv.update({d.Kriterium: d.Wert}) %}{% endfor %}
+              {% for d in (ee.wertungen[0].details if ee.wertungen else []) %}
+              <td>{{ kv.get(d.Kriterium, '—') }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="text-xs text-slate-500 italic">Noch keine Richter-Wertungen.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-sm text-slate-400 italic">Noch nicht angetreten.</p>
+    {% endif %}
+  </section>
+{% endfor %}
+{% endblock %}

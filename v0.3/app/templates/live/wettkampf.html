@@ -7,12 +7,51 @@
     <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
     <div class="text-slate-500 text-sm">{{ wk.altersklasse.Kuerzel }} · {{ wk.Typ }} · Status: {{ wk.Status }}</div>
   </div>
-  <span class="text-xs text-slate-400">aktualisiert sich automatisch</span>
+  <a class="btn btn-ghost" href="/live/tag/{{ wk.Wettkampf_Tag_id }}/riegen">📋 Riegen-Uebersicht</a>
+  <span class="text-xs text-slate-400 inline-flex items-center gap-1">
+    <span id="ws-indicator" class="inline-block w-2 h-2 rounded-full bg-slate-400"></span>
+    <span id="ws-state">verbinde…</span>
+  </span>
 </div>
 
-<div hx-get="/live/wettkampf/{{ wk.idWettkampf }}/rangliste"
-     hx-trigger="load, every 5s"
+<div id="rangliste-container"
+     hx-get="/live/wettkampf/{{ wk.idWettkampf }}/rangliste"
+     hx-trigger="load, refresh, every 30s"
      hx-swap="innerHTML">
   <p class="text-slate-400 italic text-center">Lade Rangliste…</p>
 </div>
+
+<script>
+(function(){
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var url = proto + '//' + location.host + '/live/wettkampf/{{ wk.idWettkampf }}/ws';
+  var ind = document.getElementById('ws-indicator');
+  var state = document.getElementById('ws-state');
+  var ws, reconnectDelay = 1000;
+
+  function setState(s, color){
+    state.textContent = s;
+    ind.className = 'inline-block w-2 h-2 rounded-full ' + color;
+  }
+  function connect(){
+    ws = new WebSocket(url);
+    ws.onopen = function(){
+      setState('live', 'bg-green-500');
+      reconnectDelay = 1000;
+    };
+    ws.onmessage = function(ev){
+      if (ev.data === 'ping') return;
+      // jede Nachricht triggert ein Reload des Fragments
+      htmx.trigger('#rangliste-container', 'refresh');
+    };
+    ws.onclose = function(){
+      setState('verbinde neu…', 'bg-amber-500');
+      setTimeout(connect, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+    };
+    ws.onerror = function(){ try { ws.close(); } catch(e){} };
+  }
+  connect();
+})();
+</script>
 {% endblock %}
