@@ -42,6 +42,7 @@
         {{ csrf_input(request) }}
         <input type="hidden" name="pid" value="{{ s.Personen_id }}">
         <input type="hidden" name="versuch" value="{{ vnr }}">
+        <input type="hidden" name="updated_at" value="{{ ee.Updated_At.isoformat(timespec='seconds') if ee and ee.Updated_At else '' }}">
         <div class="flex flex-wrap items-center gap-3 mb-2">
           <div class="font-semibold text-lg">#{{ s.Startnummer }} {{ s.person.Nachname }}, {{ s.person.Vorname }}</div>
           {% if s.person.verein %}<span class="badge">{{ s.person.verein.Kuerzel }}</span>{% endif %}
@@ -107,6 +108,7 @@
         {{ csrf_input(request) }}
         <input type="hidden" name="pid" value="{{ s.Personen_id }}">
         <input type="hidden" name="versuch" value="{{ vnr }}">
+        <input type="hidden" name="updated_at" value="{{ ee.Updated_At.isoformat(timespec='seconds') if ee and ee.Updated_At else '' }}">
         <div class="font-semibold mb-1">#{{ s.Startnummer }} {{ s.person.Nachname }}, {{ s.person.Vorname }}{% if versuche_max > 1 %} · V{{ vnr }}{% endif %}</div>
         <div class="grid grid-cols-2 gap-2 mb-2">
           {% for k in kriterien %}

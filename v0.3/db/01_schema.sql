@@ -263,6 +263,8 @@ CREATE TABLE `Einzel_Ergebnis` (
     `Ist_Gueltig`       TINYINT(1)    NOT NULL DEFAULT 1 COMMENT '0 = Fehlversuch',
     `Status`            ENUM('Offen','In_Bewertung','Freigegeben') NOT NULL DEFAULT 'Offen',
     `Erfasst_Am`        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `Updated_At`        TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                        COMMENT 'Optimistic-Locking Token: jede Aenderung des Versuchs erhoeht die Zeit',
     `Erfasst_Von`       INT           NULL,
     PRIMARY KEY (`idEinzel_Ergebnis`),
     UNIQUE KEY `UQ_EE_PWGV` (`Personen_id`, `Wettkampf_id`, `Geraete_id`, `Versuch_Nr`),

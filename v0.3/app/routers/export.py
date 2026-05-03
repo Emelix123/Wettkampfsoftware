@@ -128,7 +128,8 @@ def tag_ergebnisse(tid: int, db: Session = Depends(get_db),
     return _pdf_response(pdf, f"ergebnisse-tag{tid}.pdf")
 
 
-# F3: Wertungskarten als PDF (leer, fuer Kampfrichter zum Ausfuellen)
+# F3: Wertungskarten als PDF (leer, fuer Kampfrichter zum Ausfuellen).
+# Ohne ?geraet_id: alle Geraete in einem PDF (eine Section pro Geraet).
 @router.get("/wettkampf/{wid}/wertungskarten.pdf")
 def wertungskarten(wid: int, geraet_id: Optional[int] = Query(None),
                    db: Session = Depends(get_db),
@@ -136,7 +137,7 @@ def wertungskarten(wid: int, geraet_id: Optional[int] = Query(None),
     wk = db.get(Wettkampf, wid)
     if not wk:
         return RedirectResponse("/tage", status_code=303)
-    geraete_zu = wk.geraete_zuordnung
+    geraete_zu = sorted(wk.geraete_zuordnung, key=lambda g: g.Reihenfolge)
     if geraet_id:
         geraete_zu = [g for g in geraete_zu if g.Geraete_id == geraet_id]
     if not geraete_zu:
@@ -152,22 +153,17 @@ def wertungskarten(wid: int, geraet_id: Optional[int] = Query(None),
         ).all()
     )
 
-    pages = b""
-    # Eine PDF-Datei mit allen Geraeten hintereinander
-    out = []
-    for ghw in geraete_zu:
-        strat = get_strategy(ghw.berechnung.Regel_Kuerzel)
-        out.append(_render_pdf("pdf/wertungskarten.html",
-                               wk=wk, ghw=ghw, starter=starter,
-                               kriterien=strat.required_kriterien))
-    # WeasyPrint liefert pro Aufruf ein eigenes PDF; beim ersten Geraet reicht es
-    # — wenn nur 1 Geraet gewaehlt war. Mehrere PDFs zu mergen waere extra
-    # Aufwand. Fuer simpel: nur das erste zurueckgeben wenn mehrere — aber meist
-    # waehlt der User eh nur 1 Geraet beim Karten-Druck.
-    if len(out) == 1:
-        return _pdf_response(out[0], f"wertungskarten-wk{wid}-g{geraete_zu[0].Geraete_id}.pdf")
-    # Mehrere -> nur das erste mit einer Notiz. (Pragmatisch.)
-    return _pdf_response(out[0], f"wertungskarten-wk{wid}.pdf")
+    geraete_blocks = [
+        {"ghw": g, "kriterien": get_strategy(g.berechnung.Regel_Kuerzel).required_kriterien}
+        for g in geraete_zu
+    ]
+    pdf = _render_pdf("pdf/wertungskarten.html",
+                      wk=wk, starter=starter, geraete_blocks=geraete_blocks)
+    if len(geraete_zu) == 1:
+        fn = f"wertungskarten-wk{wid}-g{geraete_zu[0].Geraete_id}.pdf"
+    else:
+        fn = f"wertungskarten-wk{wid}-alle.pdf"
+    return _pdf_response(pdf, fn)
 
 
 # F4: CSV-Export der Ergebnisse

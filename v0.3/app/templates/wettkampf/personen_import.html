@@ -59,6 +59,17 @@ Jan;Beispiel;;;m</pre>
     🆕 Diese Vereine werden automatisch angelegt: <strong>{{ new_vereine|join(', ') }}</strong>
   </p>
   {% endif %}
+  {% if duplicates %}
+  <p class="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 mb-3">
+    ⚠️ <strong>{{ duplicates|length }} Personen existieren bereits</strong> mit gleichem Vor-/Nachname{% if duplicates[0] and '*' in duplicates[0] %} und Geburtsdatum{% endif %} —
+    werden bei einem echten Import als <em>Duplikat</em> angelegt.
+    {% if duplicates|length <= 10 %}
+      <br><span class="text-xs">{{ duplicates|join(', ') }}</span>
+    {% else %}
+      <br><span class="text-xs">{{ duplicates[:10]|join(', ') }} … (und {{ duplicates|length - 10 }} weitere)</span>
+    {% endif %}
+  </p>
+  {% endif %}
   <div class="overflow-x-auto">
   <table class="table">
     <thead><tr><th>Vorname</th><th>Nachname</th><th>Geburtsdatum</th><th>Verein</th><th>Geschlecht</th></tr></thead>

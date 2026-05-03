@@ -193,6 +193,11 @@ class EinzelErgebnis(Base):
         Enum("Offen", "In_Bewertung", "Freigegeben"), default="Offen"
     )
     Erfasst_Am: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
+    Updated_At: Mapped[Optional[datetime]] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"),
+        server_onupdate=text("CURRENT_TIMESTAMP"),
+        nullable=True,
+    )
     Erfasst_Von: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
 
     wertungen: Mapped[List["KampfrichterWertung"]] = relationship(

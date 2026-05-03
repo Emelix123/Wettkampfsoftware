@@ -66,6 +66,7 @@
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf?top=3" target="_blank">Urkunden Top 3</a>
           <hr class="my-1">
           <span class="text-xs text-slate-500 px-2">Wertungskarten (leer)</span>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf" target="_blank"><strong>Alle Geraete</strong></a>
           {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf?geraet_id={{ g.Geraete_id }}" target="_blank">{{ g.geraet.Name }}</a>
           {% endfor %}

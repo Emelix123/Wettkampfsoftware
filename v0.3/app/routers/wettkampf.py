@@ -2,6 +2,7 @@ from datetime import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Query, Request  # noqa
+from sqlalchemy.exc import IntegrityError
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -33,7 +34,17 @@ def create_wettkampf(request: Request, tag_id: int = Query(...),
         Altersklasse_id=Altersklasse_id, Typ=Typ,
         Mannschaft_Groesse=int(Mannschaft_Groesse) if Mannschaft_Groesse else None,
     ))
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        if "UQ_Wettkampf_Nr_Tag" in msg or "Wettkampf_Nr" in msg:
+            flash(request, "error",
+                  f"Wettkampf-Nr {Wettkampf_Nr} ist an diesem Tag schon vergeben.")
+        else:
+            flash(request, "error", f"Anlegen fehlgeschlagen: {msg[:120]}")
+        return RedirectResponse(f"/tage/{tag_id}", status_code=303)
     flash(request, "success", f"Wettkampf '{Name}' angelegt.")
     return RedirectResponse(f"/tage/{tag_id}", status_code=303)
 
@@ -93,8 +104,17 @@ def update_wettkampf(request: Request, wid: int,
         wk.Altersklasse_id = Altersklasse_id
         wk.Typ = Typ
         wk.Mannschaft_Groesse = int(Mannschaft_Groesse) if Mannschaft_Groesse else None
-        db.commit()
-        flash(request, "success", "Wettkampf aktualisiert.")
+        try:
+            db.commit()
+            flash(request, "success", "Wettkampf aktualisiert.")
+        except IntegrityError as e:
+            db.rollback()
+            msg = str(e.orig) if hasattr(e, "orig") else str(e)
+            if "UQ_Wettkampf_Nr_Tag" in msg or "Wettkampf_Nr" in msg:
+                flash(request, "error",
+                      f"Wettkampf-Nr {Wettkampf_Nr} ist an diesem Tag schon vergeben.")
+            else:
+                flash(request, "error", f"Update fehlgeschlagen: {msg[:120]}")
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 

@@ -20,6 +20,7 @@ services:
       - ./db/03_seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro
       - ./db/04_audit.sql:/docker-entrypoint-initdb.d/04_audit.sql:ro
       - ./db/05_logos.sql:/docker-entrypoint-initdb.d/05_logos.sql:ro
+      - ./db/06_concurrency.sql:/docker-entrypoint-initdb.d/06_concurrency.sql:ro
       # Demo-Daten optional: dieses File wird nur beim allerersten Start
       # ausgefuehrt; um es nicht zu laden, einfach das volume entfernen.
       - ./db/99_demo_data.sql:/docker-entrypoint-initdb.d/99_demo_data.sql:ro

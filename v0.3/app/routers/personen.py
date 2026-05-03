@@ -178,10 +178,28 @@ async def import_upload(request: Request,
             Verein.Kuerzel.in_(kuerzel_set or [""])
         ).all()}
         new_vereine = sorted(kuerzel_set - existing)
+
+        # Duplikat-Warnung: Vor- + Nachname (+ Geburtsdatum wenn da)
+        duplicates: list[str] = []
+        for r in rows:
+            q = (
+                db.query(Personen)
+                .filter(Personen.Vorname == r["Vorname"],
+                        Personen.Nachname == r["Nachname"])
+            )
+            if r["Geburtsdatum"]:
+                q = q.filter(Personen.Geburtsdatum == r["Geburtsdatum"])
+            if q.first():
+                tag = f"{r['Vorname']} {r['Nachname']}"
+                if r["Geburtsdatum"]:
+                    tag += f" *{r['Geburtsdatum']}"
+                duplicates.append(tag)
+
         return render(request, db, "wettkampf/personen_import.html",
                       preview=rows, errors=errors,
                       created_persons=0, created_vereine=0,
-                      new_vereine=new_vereine, csv_columns=CSV_COLUMNS,
+                      new_vereine=new_vereine, duplicates=duplicates,
+                      csv_columns=CSV_COLUMNS,
                       raw_csv=raw.decode("utf-8-sig", errors="replace"))
 
     # echter Import

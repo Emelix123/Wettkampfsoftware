@@ -141,6 +141,22 @@ async def save(request: Request, wid: int, gid: int,
     # Checkbox: HTML schickt das Feld nur wenn angekreuzt -> Anwesenheit pruefen.
     ist_gueltig = "ist_gueltig" in form
 
+    # Optimistic Locking: hat sich der Versuch geaendert seit das Form geladen wurde?
+    seen_updated_at = form.get("updated_at", "").strip()
+    existing_ee = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=wid, Geraete_id=gid,
+                   Personen_id=pid, Versuch_Nr=versuch).first()
+    )
+    if existing_ee and seen_updated_at and existing_ee.Updated_At:
+        current_iso = existing_ee.Updated_At.isoformat(timespec="seconds")
+        if current_iso != seen_updated_at:
+            flash(request, "error",
+                  f"Versuch wurde inzwischen von jemand anderem geaendert "
+                  f"(jetzt: {current_iso}, dein Stand: {seen_updated_at}). "
+                  f"Bitte Seite neu laden, dann nochmal speichern.")
+            return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+
     ee = _get_or_create_versuch(db, wid, gid, pid, versuch)
     ee.Ist_Gueltig = 1 if ist_gueltig else 0
     ee.Status = "In_Bewertung"
@@ -148,6 +164,7 @@ async def save(request: Request, wid: int, gid: int,
     db.commit()
 
     slot_data: dict[int, dict[str, float]] = {}
+    bad_inputs: list[str] = []
     for key, value in form.items():
         if "__" not in key or not key.startswith("slot"):
             continue
@@ -162,8 +179,13 @@ async def save(request: Request, wid: int, gid: int,
         try:
             wert = float(s_value)
         except ValueError:
+            bad_inputs.append(f"R{slot}/{krit}='{s_value}'")
             continue
         slot_data.setdefault(slot, {})[krit] = wert
+    if bad_inputs:
+        flash(request, "error",
+              "Ungueltige Werte (nicht numerisch) wurden ignoriert: "
+              + ", ".join(bad_inputs))
 
     # Single-Mode (kampfrichter): nur die EIGENE Wertung speichern.
     # Slot-Logik:
@@ -257,11 +279,13 @@ async def slot_delete(request: Request, wid: int, gid: int,
     if user.role == "kampfrichter" and w.Richter_user_id != user.id:
         flash(request, "error", "Du kannst nur deine eigene Wertung loeschen.")
         return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    # ID merken — nach delete+commit ist das Python-Objekt expired.
+    wertung_id = w.idWertung
     db.delete(w); db.commit()
     recalc_versuch(db, ee)
     from services import audit
     audit.log(db, user, "wertung.slot_delete",
-              "KampfrichterWertung", w.idWertung,
+              "KampfrichterWertung", wertung_id,
               {"wettkampf_id": wid, "geraet_id": gid,
                "person_id": pid, "versuch": versuch, "slot": slot})
     await CHANNEL.publish(wid)
