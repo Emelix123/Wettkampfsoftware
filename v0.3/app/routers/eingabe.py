@@ -216,6 +216,13 @@ async def save(request: Request, wid: int, gid: int,
         db.commit()
 
     recalc_versuch(db, ee)
+    # Audit-Log
+    from services import audit
+    audit.log(db, user, "ergebnis.save",
+              "EinzelErgebnis", ee.idEinzel_Ergebnis,
+              {"wettkampf_id": wid, "geraet_id": gid, "person_id": pid,
+               "versuch": versuch, "score": float(ee.Score) if ee.Score is not None else None,
+               "ist_gueltig": bool(ee.Ist_Gueltig)})
     # Live-Subscriber benachrichtigen — Rangliste in allen offenen Tabs
     # aktualisiert sich sofort via WebSocket-Trigger.
     await CHANNEL.publish(wid)
@@ -235,6 +242,11 @@ async def clear_versuch(request: Request, wid: int, gid: int,
                    Personen_id=pid, Versuch_Nr=versuch).first()
     )
     if ee:
+        from services import audit
+        audit.log(db, user, "ergebnis.clear",
+                  "EinzelErgebnis", ee.idEinzel_Ergebnis,
+                  {"wettkampf_id": wid, "geraet_id": gid,
+                   "person_id": pid, "versuch": versuch})
         db.delete(ee); db.commit()
         await CHANNEL.publish(wid)
         flash(request, "success", "Versuch geloescht.")

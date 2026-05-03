@@ -319,4 +319,24 @@ CREATE TABLE `Kampfrichter_Wertung_Detail` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB;
 
+-- -----------------------------------------------------
+-- Audit_Log (wer hat wann was gemacht)
+-- -----------------------------------------------------
+CREATE TABLE `Audit_Log` (
+    `idAudit_Log`  BIGINT       NOT NULL AUTO_INCREMENT,
+    `user_id`      INT          NULL,
+    `username`     VARCHAR(80)  NULL COMMENT 'Snapshot des Namens fuer den Fall dass User geloescht wird',
+    `aktion`       VARCHAR(80)  NOT NULL COMMENT 'z.B. ergebnis.save, anmeldung.update, wettkampf.delete',
+    `ziel_typ`     VARCHAR(40)  NULL  COMMENT 'z.B. EinzelErgebnis, Wettkampf',
+    `ziel_id`      VARCHAR(60)  NULL  COMMENT 'Primaerschluessel(-tupel) als Text',
+    `details`      JSON         NULL,
+    `zeitpunkt`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`idAudit_Log`),
+    KEY `IX_AL_zeit` (`zeitpunkt`),
+    KEY `IX_AL_user` (`user_id`),
+    KEY `IX_AL_ziel` (`ziel_typ`, `ziel_id`),
+    CONSTRAINT `fk_AL_User` FOREIGN KEY (`user_id`)
+        REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE = InnoDB;
+
 SET FOREIGN_KEY_CHECKS = 1;

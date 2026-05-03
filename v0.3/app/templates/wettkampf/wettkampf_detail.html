@@ -57,12 +57,18 @@
       <a class="btn btn-primary" href="/eingabe/{{ wk.idWettkampf }}">⌨️ Eingabe</a>
       <a class="btn btn-ghost" href="/live/wettkampf/{{ wk.idWettkampf }}" target="_blank">📺 Live</a>
       <details class="relative">
-        <summary class="btn btn-ghost cursor-pointer">📄 PDF</summary>
+        <summary class="btn btn-ghost cursor-pointer">📄 PDF / Export</summary>
         <div class="absolute right-0 mt-2 bg-white border border-slate-200 rounded shadow-md z-10 p-2 flex flex-col gap-1 min-w-max">
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/startliste.pdf" target="_blank">Startliste</a>
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/ergebnisse.pdf" target="_blank">Ergebnisse</a>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/ergebnisse.csv">Ergebnisse (CSV)</a>
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf" target="_blank">Urkunden (alle)</a>
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.pdf?top=3" target="_blank">Urkunden Top 3</a>
+          <hr class="my-1">
+          <span class="text-xs text-slate-500 px-2">Wertungskarten (leer)</span>
+          {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf?geraet_id={{ g.Geraete_id }}" target="_blank">{{ g.geraet.Name }}</a>
+          {% endfor %}
         </div>
       </details>
     </div>

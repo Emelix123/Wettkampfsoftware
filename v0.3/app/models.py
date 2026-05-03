@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from sqlalchemy import (
     Column, Integer, String, Date, DateTime, Time, Enum, ForeignKey,
-    Numeric, SmallInteger, UniqueConstraint, ForeignKeyConstraint, text,
+    JSON, Numeric, SmallInteger, UniqueConstraint, ForeignKeyConstraint, text,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
@@ -234,3 +234,15 @@ class KampfrichterWertungDetail(Base):
     wertung: Mapped[KampfrichterWertung] = relationship(back_populates="details")
 
     __table_args__ = (UniqueConstraint("Wertung_id", "Kriterium"),)
+
+
+class AuditLog(Base):
+    __tablename__ = "Audit_Log"
+    idAudit_Log: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"))
+    username: Mapped[Optional[str]] = mapped_column(String(80))
+    aktion: Mapped[str] = mapped_column(String(80))
+    ziel_typ: Mapped[Optional[str]] = mapped_column(String(40))
+    ziel_id: Mapped[Optional[str]] = mapped_column(String(60))
+    details: Mapped[Optional[dict]] = mapped_column(JSON)
+    zeitpunkt: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))

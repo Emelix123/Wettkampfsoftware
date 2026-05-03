@@ -1,0 +1,45 @@
+{% extends "pdf/_base.html" %}
+{% block title %}Wertungskarten — {{ wk.Name }}{% endblock %}
+{% block content %}
+{% for s in starter %}
+  {% for vnr in range(1, ghw.Anzahl_Versuche + 1) %}
+  <div style="page-break-after: always; padding-top: 6mm;">
+    <footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }}</footer>
+    <h1 style="font-size:18pt; margin-bottom: 2mm;">{{ ghw.geraet.Name }}{% if ghw.Anzahl_Versuche > 1 %} · Versuch {{ vnr }}{% endif %}</h1>
+    <div class="meta">{{ wk.Wettkampf_Nr }} · {{ wk.Name }} · {{ wk.altersklasse.Kuerzel }}</div>
+
+    <table style="margin-top: 8pt;">
+      <tbody>
+        <tr><td style="width:30%; background:#f1f5f9;"><strong>Startnummer</strong></td><td style="font-size:24pt;">{{ s.Startnummer or '—' }}</td></tr>
+        <tr><td style="background:#f1f5f9;"><strong>Athlet</strong></td><td style="font-size:14pt;">{{ s.person.Nachname }}, {{ s.person.Vorname }}</td></tr>
+        <tr><td style="background:#f1f5f9;"><strong>Verein</strong></td><td>{{ s.person.verein.Kuerzel if s.person.verein else '—' }}</td></tr>
+        {% if s.riege %}<tr><td style="background:#f1f5f9;"><strong>Riege</strong></td><td>{{ s.riege.Bezeichnung }}</td></tr>{% endif %}
+      </tbody>
+    </table>
+
+    <h2 style="margin-top: 14pt;">Wertungen ({{ ghw.Erwartete_Kampfrichter }} Richter)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Richter</th>
+          {% for k in kriterien %}<th style="text-align:center;">{{ k }}</th>{% endfor %}
+          <th>Unterschrift</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in range(1, ghw.Erwartete_Kampfrichter + 1) %}
+        <tr style="height:22pt;">
+          <td><strong>R{{ slot }}</strong></td>
+          {% for k in kriterien %}<td style="border:1px solid #888; min-width:30mm;"></td>{% endfor %}
+          <td style="border-bottom:1px solid #888; min-width:50mm;"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p style="font-size:9pt; color:#888; margin-top: 14pt;">
+      Gueltig: ☐ ja  ☐ nein (Fehlversuch) — Notiz: ______________________________________
+    </p>
+  </div>
+  {% endfor %}
+{% endfor %}
+{% endblock %}

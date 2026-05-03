@@ -23,6 +23,32 @@ def admin_home(request: Request, db: Session = Depends(get_db)):
                   user_count=db.query(User).count())
 
 
+@router.get("/audit")
+def audit_view(request: Request, page: int = 1, db: Session = Depends(get_db)):
+    from models import AuditLog
+    PAGE = 100
+    page = max(1, page)
+    total = db.query(AuditLog).count()
+    items = (
+        db.query(AuditLog)
+        .order_by(AuditLog.zeitpunkt.desc())
+        .offset((page - 1) * PAGE).limit(PAGE).all()
+    )
+    pages = max(1, (total + PAGE - 1) // PAGE)
+    return render(request, db, "admin/audit.html",
+                  items=items, page=page, pages=pages, total=total)
+
+
+@router.get("/backup")
+def backup_view(request: Request, db: Session = Depends(get_db)):
+    from models import WettkampfTag
+    tage = (
+        db.query(WettkampfTag)
+        .order_by(WettkampfTag.Wettkampf_Datum.desc()).all()
+    )
+    return render(request, db, "admin/backup.html", tage=tage)
+
+
 # ---------------- Vereine ----------------------------------------------------
 
 @router.get("/vereine")
