@@ -137,7 +137,8 @@ async def save(request: Request, wid: int, gid: int,
         flash(request, "error", "Ungueltige Form-Daten.")
         return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
 
-    ist_gueltig = form.get("ist_gueltig", "1") == "1"
+    # Checkbox: HTML schickt das Feld nur wenn angekreuzt -> Anwesenheit pruefen.
+    ist_gueltig = "ist_gueltig" in form
 
     ee = _get_or_create_versuch(db, wid, gid, pid, versuch)
     ee.Ist_Gueltig = 1 if ist_gueltig else 0

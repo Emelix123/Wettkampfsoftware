@@ -9,6 +9,20 @@ from scoring import get_strategy
 from scoring.base import ScoringInput
 
 
+def recalc_alle_versuche_fuer_ghw(db: Session, ghw: GeraeteHasWettkampf) -> int:
+    """Rechnet ALLE bestehenden Versuche fuer ein Geraet+Wettkampf neu durch.
+    Wird gebraucht wenn der Admin nachtraeglich Faktor / Offset / Berechnungs-Art
+    aendert. Returns: Anzahl der neu berechneten Versuche."""
+    versuche = (
+        db.query(EinzelErgebnis)
+        .filter_by(Wettkampf_id=ghw.Wettkampf_id, Geraete_id=ghw.Geraete_id)
+        .all()
+    )
+    for ee in versuche:
+        recalc_versuch(db, ee)
+    return len(versuche)
+
+
 def recalc_versuch(db: Session, ergebnis: EinzelErgebnis) -> EinzelErgebnis:
     ghw = (
         db.query(GeraeteHasWettkampf)

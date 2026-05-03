@@ -142,15 +142,25 @@ def update_geraet(request: Request, wid: int, ghw: int,
                   Score_Offset: float = Form(0.0),
                   db: Session = Depends(get_db),
                   user=Depends(require_user("admin"))):
+    from services.score_service import recalc_alle_versuche_fuer_ghw
     obj = db.get(GeraeteHasWettkampf, ghw)
     if obj and obj.Wettkampf_id == wid:
+        old_berechnung = obj.Berechnungs_Art_id
         obj.Berechnungs_Art_id = Berechnungs_Art_id
         obj.Anzahl_Versuche = Anzahl_Versuche
         obj.Erwartete_Kampfrichter = Erwartete_Kampfrichter
         obj.Score_Faktor = Score_Faktor
         obj.Score_Offset = Score_Offset
         db.commit()
-        flash(request, "success", f"Geraet '{obj.geraet.Name}' aktualisiert.")
+        # Bestehende Versuche neu rechnen, sonst inkonsistente Rangliste
+        n = recalc_alle_versuche_fuer_ghw(db, obj)
+        warn = ""
+        if old_berechnung != Berechnungs_Art_id and n > 0:
+            warn = (f" Achtung: Berechnungs-Art geaendert — bei {n} bestehenden "
+                    f"Versuchen koennten Pflicht-Kriterien nun fehlen.")
+        flash(request, "success",
+              f"Geraet '{obj.geraet.Name}' aktualisiert "
+              f"({n} bestehende Versuche neu berechnet).{warn}")
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 
