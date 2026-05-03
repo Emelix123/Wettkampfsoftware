@@ -30,6 +30,7 @@ Jan;Beispiel;;;m</pre>
 
 <div class="card mb-4">
   <form method="post" action="/personen/import" enctype="multipart/form-data" class="space-y-3">
+    {{ csrf_input(request) }}
     <div>
       <label class="label">CSV-Datei</label>
       <input class="input" type="file" name="file" accept=".csv,text/csv" required>

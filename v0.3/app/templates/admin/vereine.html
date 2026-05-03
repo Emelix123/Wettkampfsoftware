@@ -8,6 +8,7 @@
 
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/admin/vereine" class="card md:col-span-1 space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neuer Verein</h2>
     <div><label class="label">Kuerzel</label><input class="input" name="Kuerzel" required maxlength="10"></div>
     <div><label class="label">Name</label><input class="input" name="Name" required></div>
@@ -22,6 +23,7 @@
           {% if edit_id == v.idVerein %}
           <tr>
             <form method="post" action="/admin/vereine/{{ v.idVerein }}/update">
+              {{ csrf_input(request) }}
             <td><input class="input" name="Kuerzel" value="{{ v.Kuerzel }}" maxlength="10" required></td>
             <td><input class="input" name="Name" value="{{ v.Name }}" required></td>
             <td><input class="input" name="Ort" value="{{ v.Ort or '' }}"></td>
@@ -39,6 +41,7 @@
             <td class="text-right whitespace-nowrap">
               <a href="?edit={{ v.idVerein }}" class="btn btn-ghost">bearbeiten</a>
               <form method="post" action="/admin/vereine/{{ v.idVerein }}/delete" class="inline" onsubmit="return confirm('Verein wirklich loeschen?')">
+                {{ csrf_input(request) }}
                 <button class="btn btn-danger">loeschen</button>
               </form>
             </td>

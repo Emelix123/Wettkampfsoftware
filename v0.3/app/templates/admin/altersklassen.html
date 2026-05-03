@@ -8,6 +8,7 @@
 
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/admin/altersklassen" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neue Altersklasse</h2>
     <div><label class="label">Kuerzel</label><input class="input" name="Kuerzel" required maxlength="15" placeholder="z.B. U18M"></div>
     <div><label class="label">Bezeichnung</label><input class="input" name="Bezeichnung" required></div>
@@ -34,6 +35,7 @@
           {% if edit_id == a.idAltersklasse %}
           <tr>
             <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/update">
+              {{ csrf_input(request) }}
             <td><input class="input" name="Kuerzel" value="{{ a.Kuerzel }}" maxlength="15" required></td>
             <td><input class="input" name="Bezeichnung" value="{{ a.Bezeichnung }}" required></td>
             <td><div class="flex gap-1"><input class="input" type="number" name="Alter_Von" value="{{ a.Alter_Von or '' }}" placeholder="von"><input class="input" type="number" name="Alter_Bis" value="{{ a.Alter_Bis or '' }}" placeholder="bis"></div></td>
@@ -56,7 +58,7 @@
             <td>{{ a.Geschlecht }}</td>
             <td class="text-right whitespace-nowrap">
               <a href="?edit={{ a.idAltersklasse }}" class="btn btn-ghost">bearbeiten</a>
-              <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/delete" class="inline" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+              <form method="post" action="/admin/altersklassen/{{ a.idAltersklasse }}/delete" class="inline" onsubmit="return confirm('Loeschen?')">{{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button></form>
             </td>
           </tr>
           {% endif %}

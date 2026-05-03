@@ -12,6 +12,7 @@
 
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/admin/berechnungen" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neue Berechnungs-Art</h2>
     <div>
       <label class="label">Regel-Kuerzel (muss im Backend existieren)</label>
@@ -31,6 +32,7 @@
           {% if edit_id == b.idBerechnungs_Art %}
           <tr>
             <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/update">
+              {{ csrf_input(request) }}
             <td>
               <select class="input" name="Regel_Kuerzel">
                 {% for code in registry_codes %}<option value="{{ code }}" {% if b.Regel_Kuerzel==code %}selected{% endif %}>{{ code }}</option>{% endfor %}
@@ -51,7 +53,7 @@
             <td class="text-slate-500">{{ b.Beschreibung or '—' }}</td>
             <td class="text-right whitespace-nowrap">
               <a href="?edit={{ b.idBerechnungs_Art }}" class="btn btn-ghost">bearbeiten</a>
-              <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/delete" class="inline" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+              <form method="post" action="/admin/berechnungen/{{ b.idBerechnungs_Art }}/delete" class="inline" onsubmit="return confirm('Loeschen?')">{{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button></form>
             </td>
           </tr>
           {% endif %}

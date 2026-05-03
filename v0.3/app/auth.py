@@ -39,10 +39,18 @@ def ensure_default_admin() -> None:
         )
         db.add(admin)
         db.commit()
-        print(
-            f"[auth] Default-Admin angelegt: "
-            f"{settings.DEFAULT_ADMIN_USER} / {settings.DEFAULT_ADMIN_PASS}"
-        )
+        # Passwort nur loggen wenn es das Default ist (sonst koennte ein
+        # eigenes Passwort versehentlich in die Container-Logs geraten).
+        if settings.DEFAULT_ADMIN_PASS == "admin123":
+            print(
+                f"[auth] Default-Admin angelegt: "
+                f"{settings.DEFAULT_ADMIN_USER} / admin123  (BITTE AENDERN!)"
+            )
+        else:
+            print(
+                f"[auth] Admin '{settings.DEFAULT_ADMIN_USER}' angelegt "
+                f"(Passwort aus Env, nicht geloggt)."
+            )
     finally:
         db.close()
 

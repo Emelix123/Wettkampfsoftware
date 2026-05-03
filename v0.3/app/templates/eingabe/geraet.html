@@ -39,6 +39,7 @@
       {% set ee = versuch_map.get((s.Personen_id, vnr)) %}
       {% set slots = wertung_map.get((s.Personen_id, vnr), {}) %}
       <form method="post" action="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/save" class="card">
+        {{ csrf_input(request) }}
         <input type="hidden" name="pid" value="{{ s.Personen_id }}">
         <input type="hidden" name="versuch" value="{{ vnr }}">
         <div class="flex flex-wrap items-center gap-3 mb-2">
@@ -96,6 +97,7 @@
       {% set ee = versuch_map.get((s.Personen_id, vnr)) %}
       {% set slots = wertung_map.get((s.Personen_id, vnr), {}) %}
       <form method="post" action="/eingabe/{{ wk.idWettkampf }}/{{ ghw.Geraete_id }}/save" class="card">
+        {{ csrf_input(request) }}
         <input type="hidden" name="pid" value="{{ s.Personen_id }}">
         <input type="hidden" name="versuch" value="{{ vnr }}">
         <div class="font-semibold mb-1">#{{ s.Startnummer }} {{ s.person.Nachname }}, {{ s.person.Vorname }}{% if versuche_max > 1 %} · V{{ vnr }}{% endif %}</div>

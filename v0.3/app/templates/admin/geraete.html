@@ -8,6 +8,7 @@
 
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/admin/geraete" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neues Geraet</h2>
     <div><label class="label">Name</label><input class="input" name="Name" required></div>
     <div><label class="label">Einheit</label><input class="input" name="Einheit" value="Pkt"></div>
@@ -22,6 +23,7 @@
           {% if edit_id == g.idGeraete %}
           <tr>
             <form method="post" action="/admin/geraete/{{ g.idGeraete }}/update">
+              {{ csrf_input(request) }}
             <td><input class="input" name="Name" value="{{ g.Name }}" required></td>
             <td><input class="input" name="Einheit" value="{{ g.Einheit }}"></td>
             <td><input class="input" name="Beschreibung" value="{{ g.Beschreibung or '' }}"></td>
@@ -38,7 +40,7 @@
             <td class="text-slate-500">{{ g.Beschreibung or '—' }}</td>
             <td class="text-right whitespace-nowrap">
               <a href="?edit={{ g.idGeraete }}" class="btn btn-ghost">bearbeiten</a>
-              <form method="post" action="/admin/geraete/{{ g.idGeraete }}/delete" class="inline" onsubmit="return confirm('Loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+              <form method="post" action="/admin/geraete/{{ g.idGeraete }}/delete" class="inline" onsubmit="return confirm('Loeschen?')">{{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button></form>
             </td>
           </tr>
           {% endif %}

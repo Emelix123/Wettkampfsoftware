@@ -12,6 +12,7 @@
 </div>
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/personen" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neue Person</h2>
     <div class="grid grid-cols-2 gap-2">
       <div><label class="label">Vorname</label><input class="input" name="Vorname" required></div>
@@ -42,6 +43,7 @@
           {% if edit_id == p.idPersonen %}
           <tr>
             <form method="post" action="/personen/{{ p.idPersonen }}/update">
+              {{ csrf_input(request) }}
             <td><input class="input" name="Nachname" value="{{ p.Nachname }}" required></td>
             <td><input class="input" name="Vorname" value="{{ p.Vorname }}" required></td>
             <td><input class="input" type="date" name="Geburtsdatum" value="{{ p.Geburtsdatum or '' }}"></td>
@@ -75,7 +77,7 @@
               <a href="?edit={{ p.idPersonen }}{% if q %}&q={{ q }}{% endif %}" class="btn btn-ghost">bearbeiten</a>
               {% endif %}
               {% if user.role == 'admin' %}
-              <form method="post" action="/personen/{{ p.idPersonen }}/delete" class="inline" onsubmit="return confirm('Person wirklich loeschen? (Alle Anmeldungen werden mitgeloescht)')"><button class="btn btn-danger">loeschen</button></form>
+              <form method="post" action="/personen/{{ p.idPersonen }}/delete" class="inline" onsubmit="return confirm('Person wirklich loeschen? (Alle Anmeldungen werden mitgeloescht)')">{{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button></form>
               {% endif %}
             </td>
           </tr>

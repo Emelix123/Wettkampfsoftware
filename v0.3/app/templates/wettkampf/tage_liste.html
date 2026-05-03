@@ -6,6 +6,7 @@
 <div class="grid md:grid-cols-3 gap-4">
   {% if user.role == 'admin' %}
   <form method="post" action="/tage" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neuer Wettkampftag</h2>
     <div><label class="label">Name</label><input class="input" name="Name" required></div>
     <div><label class="label">Datum</label><input class="input" type="date" name="Wettkampf_Datum" required></div>
@@ -24,6 +25,7 @@
         {% if t.Ort %}<span class="text-sm text-slate-500">· {{ t.Ort }}</span>{% endif %}
         {% if user.role == 'admin' %}
         <form method="post" action="/tage/{{ t.idWettkampf_Tag }}/delete" onsubmit="return confirm('Wettkampftag und ALLE zugehoerigen Wettkaempfe loeschen?')">
+          {{ csrf_input(request) }}
           <button class="btn btn-danger">loeschen</button>
         </form>
         {% endif %}

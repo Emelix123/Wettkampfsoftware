@@ -8,6 +8,7 @@
 
 <div class="grid md:grid-cols-3 gap-4">
   <form method="post" action="/admin/users" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Neuer Benutzer</h2>
     <div><label class="label">Benutzername</label><input class="input" name="username" required></div>
     <div><label class="label">E-Mail</label><input class="input" type="email" name="email" required></div>
@@ -36,14 +37,15 @@
           <td>{% if u.is_active %}<span class="badge badge-green">aktiv</span>{% else %}<span class="badge badge-red">inaktiv</span>{% endif %}</td>
           <td class="text-right whitespace-nowrap">
             {% if u.id != user.id %}
-            <form method="post" action="/admin/users/{{ u.id }}/toggle-active" class="inline"><button class="btn btn-ghost">{% if u.is_active %}deaktivieren{% else %}aktivieren{% endif %}</button></form>
-            <form method="post" action="/admin/users/{{ u.id }}/delete" class="inline" onsubmit="return confirm('Benutzer wirklich loeschen?')"><button class="btn btn-danger">loeschen</button></form>
+            <form method="post" action="/admin/users/{{ u.id }}/toggle-active" class="inline">{{ csrf_input(request) }}<button class="btn btn-ghost">{% if u.is_active %}deaktivieren{% else %}aktivieren{% endif %}</button></form>
+            <form method="post" action="/admin/users/{{ u.id }}/delete" class="inline" onsubmit="return confirm('Benutzer wirklich loeschen?')">{{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button></form>
             {% else %}
             <span class="text-xs text-slate-400 italic">(eigener Account)</span>
             {% endif %}
             <details class="inline-block ml-2">
               <summary class="text-xs text-slate-500 cursor-pointer">Passwort zuruecksetzen</summary>
               <form method="post" action="/admin/users/{{ u.id }}/reset-password" class="mt-2 flex gap-2">
+                {{ csrf_input(request) }}
                 <input class="input" name="new_password" type="password" required minlength="6" placeholder="Neues Passwort">
                 <button class="btn btn-ghost">setzen</button>
               </form>

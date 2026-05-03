@@ -7,6 +7,7 @@
 <div class="card mb-4">
   {% if request.query_params.get('edit') %}
   <form method="post" action="/tage/{{ tag.idWettkampf_Tag }}/update" class="space-y-2">
+    {{ csrf_input(request) }}
     <h2 class="text-xl font-bold">Wettkampftag bearbeiten</h2>
     <div class="grid md:grid-cols-2 gap-2">
       <div><label class="label">Name</label><input class="input" name="Name" value="{{ tag.Name }}" required></div>
@@ -38,6 +39,7 @@
 <div class="grid md:grid-cols-3 gap-4">
   {% if user.role == 'admin' %}
   <form method="post" action="/wettkampf?tag_id={{ tag.idWettkampf_Tag }}" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h3 class="font-semibold">Neuer Wettkampf</h3>
     <div class="grid grid-cols-2 gap-2">
       <div><label class="label">Nr.</label><input class="input" type="number" name="Wettkampf_Nr" required value="{{ (tag.wettkaempfe|length) + 101 }}"></div>

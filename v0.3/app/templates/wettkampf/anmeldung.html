@@ -8,6 +8,7 @@
 
 <div class="grid lg:grid-cols-3 gap-4">
   <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/add" class="card space-y-3">
+    {{ csrf_input(request) }}
     <h2 class="font-semibold">Person anmelden</h2>
     <div>
       <label class="label">Person</label>
@@ -47,6 +48,7 @@
       {% for a in angemeldete %}
         <tr>
           <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/update">
+            {{ csrf_input(request) }}
           <td><input class="input w-16" type="number" name="Startnummer" value="{{ a.Startnummer or '' }}"></td>
           <td class="font-medium">{{ a.person.Nachname }}, {{ a.person.Vorname }}</td>
           <td>{{ a.person.verein.Kuerzel if a.person.verein else '—' }}</td>
@@ -77,7 +79,7 @@
           <td class="text-right whitespace-nowrap">
             <button class="btn btn-ghost">speichern</button>
           </form>
-            <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/delete" class="inline" onsubmit="return confirm('Anmeldung entfernen?')"><button class="btn btn-danger">x</button></form>
+            <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/delete" class="inline" onsubmit="return confirm('Anmeldung entfernen?')">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>
           </td>
         </tr>
       {% else %}

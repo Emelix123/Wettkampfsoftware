@@ -1,5 +1,7 @@
 import time
-from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,13 +9,42 @@ from starlette.middleware.sessions import SessionMiddleware
 
 import settings
 from auth import ensure_default_admin
+from csrf import csrf_dep, install_template_global
 from routers import (
     auth as auth_router,
     dashboard, admin, wettkampftag, wettkampf, personen,
     anmeldung, eingabe, live, export,
 )
+from views import templates
 
-app = FastAPI(title="Wettkampfsoftware", version="0.3.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Startup: wartet bis 90s auf die DB und legt dann den Default-Admin an.
+    Faengt JEDEN Fehler ab (OperationalError, ProgrammingError vor dem
+    Init-Script-Lauf, Network-Errors)."""
+    last_err = None
+    for attempt in range(1, 91):
+        try:
+            ensure_default_admin()
+            print(f"[startup] Admin-Setup OK (Versuch {attempt}).")
+            break
+        except Exception as e:
+            last_err = e
+            time.sleep(1)
+    else:
+        print(f"[startup] WARNUNG: Admin nach 90s nicht angelegt. "
+              f"Letzter Fehler: {type(last_err).__name__}: {last_err}")
+        print("[startup] Manuell: docker compose exec app python create_admin.py")
+    yield
+
+
+app = FastAPI(
+    title="Wettkampfsoftware", version="0.3.0",
+    lifespan=lifespan,
+    dependencies=[Depends(csrf_dep)],   # CSRF auf allen Routen
+)
+install_template_global(templates)
 
 app.add_middleware(
     SessionMiddleware,
@@ -25,26 +56,6 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-@app.on_event("startup")
-def on_startup():
-    """Wartet bis 90 Sekunden auf die DB und legt dann den Default-Admin an.
-    Faengt JEDEN Fehler ab (OperationalError, ProgrammingError vor dem
-    Init-Script-Lauf, Network-Errors) damit ein langsamer DB-Start nicht
-    dazu fuehrt dass nie ein Admin angelegt wird."""
-    last_err = None
-    for attempt in range(1, 91):
-        try:
-            ensure_default_admin()
-            print(f"[startup] Admin-Setup OK (Versuch {attempt}).")
-            return
-        except Exception as e:
-            last_err = e
-            time.sleep(1)
-    print(f"[startup] WARNUNG: Admin konnte nach 90s nicht angelegt werden. "
-          f"Letzter Fehler: {type(last_err).__name__}: {last_err}")
-    print("[startup] Manuell anlegen: docker compose exec app python create_admin.py")
 
 
 @app.exception_handler(HTTPException)

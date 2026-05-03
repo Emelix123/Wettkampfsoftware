@@ -8,6 +8,7 @@
     <div class="mb-4 px-3 py-2 bg-red-50 border border-red-200 text-red-800 rounded text-sm">{{ error }}</div>
   {% endif %}
   <form method="post" action="/login" class="space-y-4">
+    {{ csrf_input(request) }}
     <div>
       <label class="label">Benutzername</label>
       <input class="input" name="username" autocomplete="username" required>

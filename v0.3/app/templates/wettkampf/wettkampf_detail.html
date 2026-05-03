@@ -8,6 +8,7 @@
 <div class="card mb-4">
   {% if request.query_params.get('edit_wk') %}
   <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/update" class="space-y-2">
+    {{ csrf_input(request) }}
     <h2 class="text-xl font-bold">Wettkampf bearbeiten</h2>
     <div class="grid md:grid-cols-2 gap-2">
       <div><label class="label">Wettkampf-Nr</label><input class="input" type="number" name="Wettkampf_Nr" value="{{ wk.Wettkampf_Nr }}" required></div>
@@ -41,6 +42,7 @@
       {% if user.role == 'admin' %}
       <a class="btn btn-ghost" href="?edit_wk=1">bearbeiten</a>
       <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/status" class="flex gap-1">
+        {{ csrf_input(request) }}
         <select class="input" name="Status">
           {% for s in ['Entwurf','Anmeldung','Aktiv','Abgeschlossen','Archiviert'] %}
             <option value="{{ s }}" {% if wk.Status==s %}selected{% endif %}>{{ s }}</option>
@@ -81,6 +83,7 @@
           {% if edit_ghw == g.idGhW %}
           <tr>
             <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/update">
+              {{ csrf_input(request) }}
             <td>{{ g.Reihenfolge }}</td>
             <td class="font-medium">{{ g.geraet.Name }}</td>
             <td>
@@ -104,8 +107,8 @@
               {{ g.Reihenfolge }}
               {% if user.role == 'admin' %}
               <span class="inline-flex flex-col">
-                {% if not loop.first %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline"><input type="hidden" name="direction" value="up"><button class="btn btn-ghost text-xs px-1 py-0">▲</button></form>{% endif %}
-                {% if not loop.last %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline"><input type="hidden" name="direction" value="down"><button class="btn btn-ghost text-xs px-1 py-0">▼</button></form>{% endif %}
+                {% if not loop.first %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline">{{ csrf_input(request) }}<input type="hidden" name="direction" value="up"><button class="btn btn-ghost text-xs px-1 py-0">▲</button></form>{% endif %}
+                {% if not loop.last %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/move" class="inline">{{ csrf_input(request) }}<input type="hidden" name="direction" value="down"><button class="btn btn-ghost text-xs px-1 py-0">▼</button></form>{% endif %}
               </span>
               {% endif %}
             </td>
@@ -118,7 +121,7 @@
             <td class="text-right whitespace-nowrap">
               {% if user.role == 'admin' %}
               <a class="btn btn-ghost" href="?edit_ghw={{ g.idGhW }}">bearbeiten</a>
-              <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/delete" class="inline" onsubmit="return confirm('Geraet entfernen? (loescht auch alle Ergebnisse fuer dieses Geraet)')"><button class="btn btn-danger">x</button></form>
+              <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete/{{ g.idGhW }}/delete" class="inline" onsubmit="return confirm('Geraet entfernen? (loescht auch alle Ergebnisse fuer dieses Geraet)')">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>
               {% endif %}
             </td>
           </tr>
@@ -130,6 +133,7 @@
     </table>
     {% if user.role == 'admin' %}
     <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete" class="mt-4 grid grid-cols-2 lg:grid-cols-7 gap-2 items-end">
+      {{ csrf_input(request) }}
       <div class="col-span-2"><label class="label">Geraet</label>
         <select class="input" name="Geraete_id">{% for g in geraete_alle %}<option value="{{ g.idGeraete }}">{{ g.Name }}</option>{% endfor %}</select></div>
       <div class="col-span-2"><label class="label">Berechnung</label>
@@ -155,7 +159,7 @@
           <td>{{ r.Start_Zeit or '—' }}</td>
           <td>{{ wk.anmeldungen|selectattr('Riege_id','equalto', r.idRiege)|list|length }}</td>
           <td class="text-right">
-            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete"><button class="btn btn-danger">x</button></form>{% endif %}
+            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>{% endif %}
           </td>
         </tr>
         {% else %}<tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Riegen.</td></tr>{% endfor %}
@@ -163,6 +167,7 @@
     </table>
     {% if user.role == 'admin' %}
     <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen" class="mt-3 flex gap-2">
+      {{ csrf_input(request) }}
       <input class="input" name="Bezeichnung" placeholder="z.B. Riege 1" required>
       <input class="input" type="time" name="Start_Zeit">
       <button class="btn btn-primary">+ Riege</button>
@@ -183,7 +188,7 @@
           <td>{{ m.verein.Kuerzel if m.verein else '—' }}</td>
           <td>{{ wk.anmeldungen|selectattr('Mannschaft_id','equalto', m.idMannschaft)|list|length }}</td>
           <td class="text-right">
-            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/mannschaften/{{ m.idMannschaft }}/delete"><button class="btn btn-danger">x</button></form>{% endif %}
+            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/mannschaften/{{ m.idMannschaft }}/delete">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>{% endif %}
           </td>
         </tr>
         {% else %}<tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Mannschaften.</td></tr>{% endfor %}
@@ -191,6 +196,7 @@
     </table>
     {% if user.role == 'admin' %}
     <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/mannschaften" class="mt-3 flex gap-2">
+      {{ csrf_input(request) }}
       <input class="input" name="Name" placeholder="Team-Name" required>
       <select class="input" name="Verein_id">
         <option value="">— Verein —</option>
