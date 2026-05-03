@@ -27,23 +27,20 @@ def get_or_create_token(session: dict) -> str:
         session["csrf_token"] = tok
     return tok
 
+from starlette.requests import HTTPConnection   # ← neu importieren
 
-async def csrf_dep(request: Request) -> None:
-    # Token immer sicherstellen — auch bei GETs, damit das naechste Form
-    # schon einen Token hat.
+async def csrf_dep(request: HTTPConnection) -> None:   # ← HTTPConnection statt Request
+    # WebSocket-Check zuerst
+    if request.scope["type"] == "websocket":
+        return
+
     expected = get_or_create_token(request.session)
 
     if request.method in SAFE_METHODS:
         return
     if request.url.path.startswith("/static"):
         return
-    # WebSocket-Routen brauchen kein CSRF — sie haben eigene Auth-Modelle
-    if request.url.path.endswith("/ws"):
-        return
 
-    # Form lesen — Starlette cached das auf request._form, sodass die
-    # eigentliche Route via await request.form() bzw. Form(...) den
-    # gleichen geparsten Body bekommt.
     try:
         form = await request.form()
         sent = form.get(CSRF_FIELD)
@@ -56,7 +53,6 @@ async def csrf_dep(request: Request) -> None:
             detail="Sicherheitstoken (CSRF) ungueltig oder abgelaufen. "
                    "Bitte Seite neu laden und nochmal absenden.",
         )
-
 
 def install_template_global(templates) -> None:
     """Macht csrf_input() in allen Templates verfuegbar."""

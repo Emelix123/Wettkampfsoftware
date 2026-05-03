@@ -1,7 +1,12 @@
 -- Migration: Logo-Spalten fuer Verein und Wettkampftag.
 -- Idempotent: prueft erst ob Spalte existiert (per INFORMATION_SCHEMA).
 USE wettkampfDB;
-
+ALTER TABLE Wettkampf_Tag ADD COLUMN Logo MEDIUMBLOB NULL;
+ALTER TABLE Wettkampf_Tag ADD COLUMN Logo_MimeType VARCHAR(60) NULL;
+ALTER TABLE Verein        ADD COLUMN Logo MEDIUMBLOB NULL;
+ALTER TABLE Verein        ADD COLUMN Logo_MimeType VARCHAR(60) NULL;
+ALTER TABLE Wettkampf_Tag MODIFY Logo_MimeType VARCHAR(60) NULL;
+ALTER TABLE Verein        MODIFY Logo_MimeType VARCHAR(60) NULL;
 DROP PROCEDURE IF EXISTS add_logo_column;
 DELIMITER $$
 CREATE PROCEDURE add_logo_column(IN tbl VARCHAR(64), IN col VARCHAR(64))
