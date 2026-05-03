@@ -15,10 +15,14 @@ from views import render, flash, safe_delete
 router = APIRouter(prefix="/personen")
 
 
+PAGE_SIZE = 50
+
+
 @router.get("")
 def list_personen(request: Request,
                   edit: Optional[int] = Query(None),
                   q: Optional[str] = Query(None),
+                  page: int = Query(1, ge=1),
                   db: Session = Depends(get_db),
                   user=Depends(require_user())):
     qry = db.query(Personen)
@@ -27,10 +31,16 @@ def list_personen(request: Request,
         like = f"%{q.strip()}%"
         qry = qry.filter(or_(Personen.Vorname.ilike(like),
                              Personen.Nachname.ilike(like)))
-    items = qry.order_by(Personen.Nachname, Personen.Vorname).all()
+    total = qry.count()
+    pages = max(1, (total + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = min(page, pages)
+    items = (qry.order_by(Personen.Nachname, Personen.Vorname)
+                .offset((page - 1) * PAGE_SIZE)
+                .limit(PAGE_SIZE).all())
     vereine = db.query(Verein).order_by(Verein.Kuerzel).all()
     return render(request, db, "wettkampf/personen.html",
-                  items=items, vereine=vereine, edit_id=edit, q=q or "")
+                  items=items, vereine=vereine, edit_id=edit, q=q or "",
+                  page=page, pages=pages, total=total)
 
 
 @router.post("/{pid}/update")

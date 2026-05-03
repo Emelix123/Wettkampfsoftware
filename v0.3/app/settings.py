@@ -13,6 +13,7 @@ DATABASE_URL = (
 
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 SESSION_COOKIE = "wk_session"
+SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE", "3600"))  # 60 min Idle-Timeout
 
 DEFAULT_ADMIN_USER = os.getenv("DEFAULT_ADMIN_USER", "admin")
 DEFAULT_ADMIN_PASS = os.getenv("DEFAULT_ADMIN_PASS", "admin123")

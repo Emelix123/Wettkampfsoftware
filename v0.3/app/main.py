@@ -21,6 +21,7 @@ app.add_middleware(
     session_cookie=settings.SESSION_COOKIE,
     same_site="lax",
     https_only=False,
+    max_age=settings.SESSION_MAX_AGE,  # auto-logout nach Idle-Zeit
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
