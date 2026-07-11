@@ -276,21 +276,41 @@ def berechnungen_delete(request: Request, bid: int, db: Session = Depends(get_db
 @router.get("/users")
 def users_list(request: Request, db: Session = Depends(get_db)):
     items = db.query(User).order_by(User.username).all()
-    return render(request, db, "admin/users.html", items=items)
+    vereine = db.query(Verein).order_by(Verein.Kuerzel).all()
+    return render(request, db, "admin/users.html", items=items, vereine=vereine)
 
 
 @router.post("/users")
 def users_create(request: Request,
                  username: str = Form(...), email: str = Form(...),
                  password: str = Form(...), role: str = Form("viewer"),
+                 Verein_id: str = Form(""),
                  db: Session = Depends(get_db)):
-    if role not in ("admin", "tisch", "kampfrichter", "viewer"):
+    if role not in ("admin", "tisch", "kampfrichter", "trainer", "viewer"):
         flash(request, "error", "Ungueltige Rolle.")
         return RedirectResponse("/admin/users", status_code=303)
+    verein_id = int(Verein_id) if Verein_id else None
+    if role == "trainer" and not verein_id:
+        flash(request, "error",
+              "Rolle 'trainer' braucht einen Verein — sonst kann nichts gemeldet werden.")
+        return RedirectResponse("/admin/users", status_code=303)
     db.add(User(username=username.strip(), email=email.strip(),
-                password_hash=hash_password(password), role=role, is_active=1))
+                password_hash=hash_password(password), role=role,
+                Verein_id=verein_id, is_active=1))
     db.commit()
     flash(request, "success", f"User '{username}' angelegt.")
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{uid}/verein")
+def users_set_verein(request: Request, uid: int,
+                     Verein_id: str = Form(""),
+                     db: Session = Depends(get_db)):
+    u = db.get(User, uid)
+    if u:
+        u.Verein_id = int(Verein_id) if Verein_id else None
+        db.commit()
+        flash(request, "success", f"Verein von '{u.username}' aktualisiert.")
     return RedirectResponse("/admin/users", status_code=303)
 
 

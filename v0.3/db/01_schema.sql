@@ -10,8 +10,9 @@
 --     der im Backend auf eine Strategy-Klasse gemappt wird.
 -- =====================================================
 
-DROP DATABASE IF EXISTS wettkampfDB;
-CREATE DATABASE wettkampfDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- ACHTUNG: Dieses Script legt nur an, es loescht nichts.
+-- Zum kompletten Zuruecksetzen (Entwicklung!) siehe db/00_reset_dev.sql.
+CREATE DATABASE IF NOT EXISTS wettkampfDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE wettkampfDB;
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -53,6 +54,8 @@ CREATE TABLE `Wettkampf_Tag` (
     `Wettkampf_Datum` DATE         NOT NULL,
     `Ort`             VARCHAR(120) NULL,
     `Veranstalter`    VARCHAR(120) NULL,
+    `Meldeschluss`    DATETIME     NULL
+              COMMENT 'Bis wann Trainer melden duerfen; NULL = solange Status Anmeldung',
     `Erstellt_Am`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `Logo`            MEDIUMBLOB   NULL,
     `Logo_MimeType`   VARCHAR(60)  NULL,
@@ -155,6 +158,8 @@ CREATE TABLE `Geraete_has_Wettkampf` (
     `idGhW`                 INT           NOT NULL AUTO_INCREMENT,
     `Wettkampf_id`          INT           NOT NULL,
     `Geraete_id`            INT           NOT NULL,
+    `Anzeige_Label`         VARCHAR(120)  NULL
+              COMMENT 'Optionale Beschriftung nur fuer diesen Wettkampf (z.B. "Feld 1 - Speed 30s"); NULL = Geraete.Name',
     `Reihenfolge`           INT           NOT NULL DEFAULT 1,
     `Anzahl_Versuche`       INT           NOT NULL DEFAULT 1,
     `Berechnungs_Art_id`    INT           NOT NULL,
@@ -199,6 +204,7 @@ CREATE TABLE `Personen` (
 --   tisch           - kann an mehreren Geräten als Tisch-Kampfrichter eintragen
 --                     (Eingabemaske trägt mehrere Richter-Werte gleichzeitig ein)
 --   kampfrichter    - eigene Wertung pro Versuch
+--   trainer         - meldet Teilnehmer des eigenen Vereins (Verein_id Pflicht)
 --   viewer          - nur Lesezugriff im internen Bereich
 -- -----------------------------------------------------
 CREATE TABLE `user` (
@@ -206,8 +212,10 @@ CREATE TABLE `user` (
     `username`      VARCHAR(80)  NOT NULL,
     `email`         VARCHAR(120) NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
-    `role`          ENUM('admin','tisch','kampfrichter','viewer') NOT NULL DEFAULT 'viewer',
+    `role`          ENUM('admin','tisch','kampfrichter','trainer','viewer') NOT NULL DEFAULT 'viewer',
     `Personen_id`   INT          NULL,
+    `Verein_id`     INT          NULL
+              COMMENT 'Pflicht fuer role=trainer: bestimmt fuer welchen Verein gemeldet werden darf',
     `is_active`     TINYINT(1)   NOT NULL DEFAULT 1,
     `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `last_login`    TIMESTAMP    NULL,
@@ -216,6 +224,9 @@ CREATE TABLE `user` (
     UNIQUE KEY `UQ_user_email`    (`email`),
     CONSTRAINT `fk_user_P` FOREIGN KEY (`Personen_id`)
         REFERENCES `Personen`(`idPersonen`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_user_V` FOREIGN KEY (`Verein_id`)
+        REFERENCES `Verein`(`idVerein`)
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB;
 

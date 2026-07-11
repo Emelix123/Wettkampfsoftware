@@ -16,6 +16,8 @@ from .base import ScoringStrategy, ScoringInput, ScoringResult
 from .turnen import TurnenOlympicTrim, TurnenAvg
 from .leichtathletik import LaDirect, LaSprint
 from .manuell import Manuell
+from .rsg import RsgStandard
+from .rope_skipping import RopeSpeed, RopeFreestyle
 
 REGISTRY: dict[str, ScoringStrategy] = {
     "TURNEN_OLYMPIC_TRIM": TurnenOlympicTrim(),
@@ -23,6 +25,9 @@ REGISTRY: dict[str, ScoringStrategy] = {
     "LA_DIRECT":           LaDirect(),
     "LA_SPRINT":           LaSprint(),
     "MANUELL":             Manuell(),
+    "RSG_STANDARD":        RsgStandard(),
+    "ROPE_SPEED":          RopeSpeed(),
+    "ROPE_FREESTYLE":      RopeFreestyle(),
 }
 
 

@@ -56,6 +56,7 @@ def snapshot_tag(db: Session, tag_id: int) -> dict:
             wk_block["geraete"].append({
                 "id_ghw": g.idGhW,
                 "geraet": g.geraet.Name,
+                "anzeige_label": g.Anzeige_Label,
                 "berechnung": g.berechnung.Regel_Kuerzel,
                 "reihenfolge": g.Reihenfolge,
                 "anzahl_versuche": g.Anzahl_Versuche,

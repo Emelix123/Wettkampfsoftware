@@ -13,7 +13,7 @@ from csrf import csrf_dep, install_template_global
 from routers import (
     auth as auth_router,
     dashboard, admin, wettkampftag, wettkampf, personen,
-    anmeldung, eingabe, live, export, media,
+    anmeldung, eingabe, live, export, media, melden,
 )
 from views import templates
 
@@ -40,7 +40,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Wettkampfsoftware", version="0.3.0",
+    title="Wettkampfsoftware", version="0.4.0",
     lifespan=lifespan,
     dependencies=[Depends(csrf_dep)],   # CSRF auf allen Routen
 )
@@ -84,6 +84,7 @@ app.include_router(wettkampftag.router)
 app.include_router(wettkampf.router)
 app.include_router(personen.router)
 app.include_router(anmeldung.router)
+app.include_router(melden.router)
 app.include_router(eingabe.router)
 app.include_router(live.router)
 app.include_router(export.router)

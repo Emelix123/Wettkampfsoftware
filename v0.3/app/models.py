@@ -40,6 +40,7 @@ class WettkampfTag(Base):
     Wettkampf_Datum: Mapped[date]
     Ort: Mapped[Optional[str]] = mapped_column(String(120))
     Veranstalter: Mapped[Optional[str]] = mapped_column(String(120))
+    Meldeschluss: Mapped[Optional[datetime]]
     Erstellt_Am: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
     Logo: Mapped[Optional[bytes]] = mapped_column(MEDIUMBLOB, nullable=True)
     Logo_MimeType: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
@@ -119,6 +120,7 @@ class GeraeteHasWettkampf(Base):
     idGhW: Mapped[int] = mapped_column(primary_key=True)
     Wettkampf_id: Mapped[int] = mapped_column(ForeignKey("Wettkampf.idWettkampf"))
     Geraete_id: Mapped[int] = mapped_column(ForeignKey("Geraete.idGeraete"))
+    Anzeige_Label: Mapped[Optional[str]] = mapped_column(String(120))
     Reihenfolge: Mapped[int] = mapped_column(default=1)
     Anzahl_Versuche: Mapped[int] = mapped_column(default=1)
     Berechnungs_Art_id: Mapped[int] = mapped_column(ForeignKey("Berechnungs_Art.idBerechnungs_Art"))
@@ -131,6 +133,11 @@ class GeraeteHasWettkampf(Base):
     berechnung: Mapped[BerechnungsArt] = relationship()
 
     __table_args__ = (UniqueConstraint("Wettkampf_id", "Geraete_id"),)
+
+    @property
+    def anzeige_name(self) -> str:
+        """Beschriftung fuer diesen Wettkampf: eigenes Label oder Stammdaten-Name."""
+        return self.Anzeige_Label or self.geraet.Name
 
 
 class Personen(Base):
@@ -152,12 +159,15 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(
-        Enum("admin", "tisch", "kampfrichter", "viewer"), default="viewer"
+        Enum("admin", "tisch", "kampfrichter", "trainer", "viewer"), default="viewer"
     )
     Personen_id: Mapped[Optional[int]] = mapped_column(ForeignKey("Personen.idPersonen"))
+    Verein_id: Mapped[Optional[int]] = mapped_column(ForeignKey("Verein.idVerein"))
     is_active: Mapped[int] = mapped_column(SmallInteger, default=1)
     created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
     last_login: Mapped[Optional[datetime]]
+
+    verein: Mapped[Optional["Verein"]] = relationship()
 
 
 class PersonenHasWettkampf(Base):

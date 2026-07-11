@@ -105,7 +105,7 @@ def geraet(request: Request, wid: int, gid: int,
     return render(request, db, "eingabe/geraet.html",
                   wk=wk, ghw=ghw, mode=mode, starter=starter,
                   versuch_map=versuch_map, wertung_map=wertung_map,
-                  kriterien=strategy.required_kriterien,
+                  kriterien=strategy.alle_kriterien,
                   num_judges=ghw.Erwartete_Kampfrichter,
                   versuche_max=ghw.Anzahl_Versuche,
                   riege_filter=riege)
