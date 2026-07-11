@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Meldung — {{ wk.Name }}{% endblock %}
+{% block content %}
+<div class="flex items-center mb-4 gap-3 flex-wrap">
+  <a href="/melden" class="text-sm text-brand-600 hover:underline">← Meldungen</a>
+</div>
+
+<div class="card mb-4">
+  <h1 class="text-2xl font-bold">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</h1>
+  <div class="text-slate-500 text-sm">
+    {{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }} · {{ wk.altersklasse.Kuerzel }} ({{ wk.altersklasse.Bezeichnung }})
+    · Verein: <strong>{{ verein.Kuerzel }}</strong>
+    {% if wk.tag.Meldeschluss %} · Meldeschluss: {{ wk.tag.Meldeschluss.strftime('%d.%m.%Y %H:%M') }}{% endif %}
+  </div>
+  {% if not offen %}
+  <div class="mt-3 px-4 py-2 rounded border bg-amber-50 border-amber-200 text-amber-800">
+    Meldung geschlossen: {{ grund }}
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid lg:grid-cols-2 gap-4">
+
+  <section class="card">
+    <h2 class="font-semibold mb-3">Gemeldete Teilnehmer ({{ gemeldet|length }})</h2>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Jahrgang</th><th>Status</th><th>Startnr.</th><th></th></tr></thead>
+      <tbody>
+        {% for a in gemeldet %}
+        <tr>
+          <td class="font-medium">{{ a.person.Nachname }}, {{ a.person.Vorname }}</td>
+          <td>{{ a.person.Geburtsdatum.year if a.person.Geburtsdatum else '—' }}</td>
+          <td><span class="badge">{{ a.Start_Status }}</span></td>
+          <td>{{ a.Startnummer or '—' }}</td>
+          <td class="text-right">
+            {% if offen %}
+            <form method="post" action="/melden/{{ wk.idWettkampf }}/{{ a.Personen_id }}/remove"
+                  onsubmit="return confirm('{{ a.person.Vorname }} {{ a.person.Nachname }} abmelden?')">
+              {{ csrf_input(request) }}
+              <button class="btn btn-danger">abmelden</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-slate-400 italic text-center">Noch niemand gemeldet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  {% if offen %}
+  <div class="space-y-4">
+    <section class="card">
+      <h2 class="font-semibold mb-3">Vorhandene Person melden</h2>
+      {% if verfuegbar %}
+      <form method="post" action="/melden/{{ wk.idWettkampf }}/add" class="flex gap-2 items-end">
+        {{ csrf_input(request) }}
+        <div class="flex-1">
+          <label class="label">Person ({{ verein.Kuerzel }})</label>
+          <select class="input" name="Personen_id">
+            {% for p in verfuegbar %}
+            <option value="{{ p.idPersonen }}">{{ p.Nachname }}, {{ p.Vorname }}{% if p.Geburtsdatum %} ({{ p.Geburtsdatum.year }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-primary">melden</button>
+      </form>
+      {% else %}
+      <p class="text-slate-400 italic">Alle Personen deines Vereins sind bereits gemeldet — oder es sind noch keine angelegt (unten neu anlegen).</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2 class="font-semibold mb-3">Neue Person anlegen + melden</h2>
+      <form method="post" action="/melden/{{ wk.idWettkampf }}/neu" class="grid grid-cols-2 gap-2">
+        {{ csrf_input(request) }}
+        <div><label class="label">Vorname</label><input class="input" name="Vorname" required></div>
+        <div><label class="label">Nachname</label><input class="input" name="Nachname" required></div>
+        <div><label class="label">Geburtsdatum</label><input class="input" type="date" name="Geburtsdatum"></div>
+        <div>
+          <label class="label">Geschlecht</label>
+          <select class="input" name="Geschlecht">
+            <option value="">—</option>
+            <option value="m">maennlich</option>
+            <option value="w">weiblich</option>
+            <option value="d">divers</option>
+          </select>
+        </div>
+        <div class="col-span-2"><button class="btn btn-primary w-full">anlegen &amp; melden</button></div>
+      </form>
+    </section>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

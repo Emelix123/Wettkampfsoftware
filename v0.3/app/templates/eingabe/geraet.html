@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Eingabe {{ ghw.geraet.Name }} — {{ wk.Name }}{% endblock %}
+{% block title %}Eingabe {{ ghw.anzeige_name }} — {{ wk.Name }}{% endblock %}
 {% block content %}
 <div class="flex items-center mb-3 gap-3 flex-wrap">
   <a href="/eingabe/{{ wk.idWettkampf }}" class="text-sm text-brand-600 hover:underline">← Geraete</a>
 </div>
 <div class="card mb-4 flex flex-wrap items-center gap-3">
   <div class="flex-1">
-    <h1 class="text-2xl font-bold">{{ ghw.geraet.Name }}</h1>
+    <h1 class="text-2xl font-bold">{{ ghw.anzeige_name }}</h1>
     <div class="text-slate-500 text-sm">
       {{ wk.Name }} · {{ ghw.berechnung.Bezeichnung }}
       · <strong>{{ num_judges }}</strong> Richter

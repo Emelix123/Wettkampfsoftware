@@ -1,8 +1,19 @@
 """Helper rund um die VIEWs vw_Rangliste_Einzel und vw_Mannschaft_Score_All."""
+from dataclasses import dataclass
+
 from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from models import Geraete, GeraeteHasWettkampf
+
+
+@dataclass
+class GeraetSpalte:
+    """Geraete-Spalte fuer Ranglisten/Exporte — Name ist die effektive
+    Beschriftung dieses Wettkampfs (Anzeige_Label oder Stammdaten-Name)."""
+    idGeraete: int
+    Name: str
+    Einheit: str
 
 
 def riegen_fortschritt(db: Session, wettkampf_id: int) -> dict:
@@ -65,19 +76,23 @@ def einzel_rangliste(db: Session, wettkampf_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def geraete_des_wettkampfs(db: Session, wettkampf_id: int) -> list[Geraete]:
-    """Geraete in der Reihenfolge wie sie im Wettkampf zugeordnet sind."""
+def geraete_des_wettkampfs(db: Session, wettkampf_id: int) -> list[GeraetSpalte]:
+    """Geraete in der Reihenfolge wie sie im Wettkampf zugeordnet sind,
+    mit der wettkampf-spezifischen Beschriftung (Anzeige_Label)."""
     rows = (
-        db.query(Geraete, GeraeteHasWettkampf.Reihenfolge)
+        db.query(Geraete, GeraeteHasWettkampf.Anzeige_Label)
         .join(GeraeteHasWettkampf, GeraeteHasWettkampf.Geraete_id == Geraete.idGeraete)
         .filter(GeraeteHasWettkampf.Wettkampf_id == wettkampf_id)
         .order_by(GeraeteHasWettkampf.Reihenfolge)
         .all()
     )
-    return [r[0] for r in rows]
+    return [
+        GeraetSpalte(idGeraete=g.idGeraete, Name=label or g.Name, Einheit=g.Einheit)
+        for g, label in rows
+    ]
 
 
-def einzel_rangliste_mit_geraeten(db: Session, wettkampf_id: int) -> tuple[list[dict], list[Geraete]]:
+def einzel_rangliste_mit_geraeten(db: Session, wettkampf_id: int) -> tuple[list[dict], list[GeraetSpalte]]:
     """Gibt (rangliste, geraete) zurueck. Jede Zeile enthaelt zusaetzlich
     `geraete_scores`: dict[geraet_id, BesterScore | None]."""
     geraete = geraete_des_wettkampfs(db, wettkampf_id)

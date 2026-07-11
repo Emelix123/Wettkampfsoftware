@@ -89,6 +89,31 @@ def add(request: Request, wid: int,
     return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
 
 
+@router.post("/{wid}/startnummern-vergeben")
+def startnummern_vergeben(request: Request, wid: int,
+                          db: Session = Depends(get_db),
+                          user=Depends(require_user(("admin", "tisch")))):
+    """Vergibt fuer alle Anmeldungen OHNE Startnummer (z.B. Trainer-Meldungen)
+    automatisch die naechsten freien Nummern. Bestehende bleiben unveraendert."""
+    offene = (
+        db.query(PersonenHasWettkampf)
+        .filter_by(Wettkampf_id=wid)
+        .filter(PersonenHasWettkampf.Startnummer.is_(None))
+        .join(Personen, Personen.idPersonen == PersonenHasWettkampf.Personen_id)
+        .order_by(Personen.Nachname, Personen.Vorname)
+        .all()
+    )
+    if not offene:
+        flash(request, "info", "Alle Anmeldungen haben bereits eine Startnummer.")
+        return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+    for a in offene:
+        a.Startnummer = _next_free_startnr(db, wid)
+        db.flush()
+    db.commit()
+    flash(request, "success", f"{len(offene)} Startnummern vergeben.")
+    return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+
+
 @router.post("/{wid}/{pid}/update")
 def update(request: Request, wid: int, pid: int,
            Startnummer: str = Form(""),

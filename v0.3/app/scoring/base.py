@@ -20,6 +20,12 @@ class ScoringStrategy:
     code: str = ""
     label: str = ""
     required_kriterien: list[str] = []   # Pflichtfelder pro Wertung
+    optional_kriterien: list[str] = []   # duerfen leer bleiben (z.B. Abzug)
+
+    @property
+    def alle_kriterien(self) -> list[str]:
+        """Eingabefelder in der Maske: Pflicht + optionale Kriterien."""
+        return self.required_kriterien + self.optional_kriterien
 
     def validate(self, values: dict[str, float]) -> list[str]:
         """Prueft ob eine einzelne Richter-Wertung alle Pflicht-Kriterien hat.

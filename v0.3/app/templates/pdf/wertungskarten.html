@@ -8,7 +8,7 @@
     {% for vnr in range(1, ghw.Anzahl_Versuche + 1) %}
     <div style="page-break-after: always; padding-top: 6mm;">
       <footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }}</footer>
-      <h1 style="font-size:18pt; margin-bottom: 2mm;">{{ ghw.geraet.Name }}{% if ghw.Anzahl_Versuche > 1 %} · Versuch {{ vnr }}{% endif %}</h1>
+      <h1 style="font-size:18pt; margin-bottom: 2mm;">{{ ghw.anzeige_name }}{% if ghw.Anzahl_Versuche > 1 %} · Versuch {{ vnr }}{% endif %}</h1>
       <div class="meta">{{ wk.Wettkampf_Nr }} · {{ wk.Name }} · {{ wk.altersklasse.Kuerzel }}</div>
 
       <table style="margin-top: 8pt;">

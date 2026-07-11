@@ -19,6 +19,7 @@ class TurnenOlympicTrim(ScoringStrategy):
     code = "TURNEN_OLYMPIC_TRIM"
     label = "Turnen Olympisch (E-Note Trim)"
     required_kriterien = ["D_Note", "E_Note"]
+    optional_kriterien = ["Abzug"]
 
     def compute(self, inp: ScoringInput) -> ScoringResult:
         if len(inp.judge_values) < inp.expected_judges:
@@ -45,6 +46,7 @@ class TurnenAvg(ScoringStrategy):
     code = "TURNEN_AVG"
     label = "Turnen Schnitt aller Wertungen"
     required_kriterien = ["D_Note", "E_Note"]
+    optional_kriterien = ["Abzug"]
 
     def compute(self, inp: ScoringInput) -> ScoringResult:
         if len(inp.judge_values) < inp.expected_judges:

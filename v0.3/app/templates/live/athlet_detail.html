@@ -18,7 +18,7 @@
 {% for ghw in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
   {% set versuche = by_geraet.get(ghw.Geraete_id, []) %}
   <section class="card mb-4">
-    <h2 class="font-semibold mb-2">{{ ghw.Reihenfolge }}. {{ ghw.geraet.Name }}
+    <h2 class="font-semibold mb-2">{{ ghw.Reihenfolge }}. {{ ghw.anzeige_name }}
       <span class="text-xs text-slate-500 font-normal">· {{ ghw.berechnung.Bezeichnung }} · {{ ghw.Erwartete_Kampfrichter }} Richter</span>
     </h2>
     {% if versuche %}

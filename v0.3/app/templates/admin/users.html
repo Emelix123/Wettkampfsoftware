@@ -19,7 +19,15 @@
         <option value="viewer">viewer (nur lesen)</option>
         <option value="kampfrichter">kampfrichter (eigene Wertung)</option>
         <option value="tisch">tisch (Tisch-Eingabe mehrerer Wertungen)</option>
+        <option value="trainer">trainer (meldet eigenen Verein)</option>
         <option value="admin">admin (alles)</option>
+      </select>
+    </div>
+    <div>
+      <label class="label">Verein (Pflicht bei trainer)</label>
+      <select class="input" name="Verein_id">
+        <option value="">— kein Verein —</option>
+        {% for v in vereine %}<option value="{{ v.idVerein }}">{{ v.Kuerzel }} — {{ v.Name }}</option>{% endfor %}
       </select>
     </div>
     <button class="btn btn-primary">Anlegen</button>
@@ -27,13 +35,22 @@
 
   <div class="card md:col-span-2 overflow-x-auto">
     <table class="table">
-      <thead><tr><th>Benutzer</th><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th></th></tr></thead>
+      <thead><tr><th>Benutzer</th><th>E-Mail</th><th>Rolle</th><th>Verein</th><th>Aktiv</th><th></th></tr></thead>
       <tbody>
         {% for u in items %}
         <tr>
           <td class="font-medium">{{ u.username }}</td>
           <td class="text-slate-600">{{ u.email }}</td>
           <td><span class="badge">{{ u.role }}</span></td>
+          <td>
+            <form method="post" action="/admin/users/{{ u.id }}/verein" class="flex gap-1 items-center">
+              {{ csrf_input(request) }}
+              <select class="input text-xs" name="Verein_id" onchange="this.form.submit()">
+                <option value="">—</option>
+                {% for v in vereine %}<option value="{{ v.idVerein }}" {% if u.Verein_id == v.idVerein %}selected{% endif %}>{{ v.Kuerzel }}</option>{% endfor %}
+              </select>
+            </form>
+          </td>
           <td>{% if u.is_active %}<span class="badge badge-green">aktiv</span>{% else %}<span class="badge badge-red">inaktiv</span>{% endif %}</td>
           <td class="text-right whitespace-nowrap">
             {% if u.id != user.id %}

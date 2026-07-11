@@ -135,6 +135,7 @@ def add_geraet(request: Request, wid: int,
                Anzahl_Versuche: int = Form(1),
                Erwartete_Kampfrichter: int = Form(1),
                Score_Faktor: float = Form(1.0), Score_Offset: float = Form(0.0),
+               Anzeige_Label: str = Form(""),
                db: Session = Depends(get_db),
                user=Depends(require_user("admin"))):
     next_order = (
@@ -146,6 +147,7 @@ def add_geraet(request: Request, wid: int,
         Anzahl_Versuche=Anzahl_Versuche,
         Erwartete_Kampfrichter=Erwartete_Kampfrichter,
         Score_Faktor=Score_Faktor, Score_Offset=Score_Offset,
+        Anzeige_Label=Anzeige_Label.strip() or None,
         Reihenfolge=next_order,
     ))
     db.commit()
@@ -160,6 +162,7 @@ def update_geraet(request: Request, wid: int, ghw: int,
                   Erwartete_Kampfrichter: int = Form(1),
                   Score_Faktor: float = Form(1.0),
                   Score_Offset: float = Form(0.0),
+                  Anzeige_Label: str = Form(""),
                   db: Session = Depends(get_db),
                   user=Depends(require_user("admin"))):
     from services.score_service import recalc_alle_versuche_fuer_ghw
@@ -171,6 +174,7 @@ def update_geraet(request: Request, wid: int, ghw: int,
         obj.Erwartete_Kampfrichter = Erwartete_Kampfrichter
         obj.Score_Faktor = Score_Faktor
         obj.Score_Offset = Score_Offset
+        obj.Anzeige_Label = Anzeige_Label.strip() or None
         db.commit()
         # Bestehende Versuche neu rechnen, sonst inkonsistente Rangliste
         n = recalc_alle_versuche_fuer_ghw(db, obj)

@@ -10,7 +10,7 @@
 <div class="grid md:grid-cols-3 gap-3">
   {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
   <a class="card hover:shadow-md" href="/eingabe/{{ wk.idWettkampf }}/{{ g.Geraete_id }}">
-    <div class="text-xl font-semibold">{{ g.geraet.Name }}</div>
+    <div class="text-xl font-semibold">{{ g.anzeige_name }}</div>
     <div class="text-xs text-slate-500 mt-1">{{ g.berechnung.Bezeichnung }} · {{ g.Erwartete_Kampfrichter }} Richter · {{ g.Anzahl_Versuche }} Versuche</div>
   </a>
   {% else %}

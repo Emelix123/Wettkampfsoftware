@@ -1,10 +1,13 @@
-# Wettkampfsoftware v0.3
+# Wettkampfsoftware v0.4
 
-Komplette Webapp zur Wettkampf-Verwaltung — Stammdaten, Anmeldung, Live-Eingabe
-mit mehreren Kampfrichtern, oeffentliche Live-Rangliste mit Detail-Ansicht und
-PDF-Exporte (Startliste, Ergebnisse, Urkunden, Wertungskarten). Audit-Log,
-JSON-Backup und CSV-Export inklusive. Alles im Browser, kein SQL-Editor und
-keine Word/Excel-Vorlagen mehr noetig.
+Komplette Webapp zur Wettkampf-Verwaltung — Stammdaten, Anmeldung (inkl.
+Trainer-Meldeportal), Live-Eingabe mit mehreren Kampfrichtern, oeffentliche
+Live-Rangliste mit Detail-Ansicht und Exporte: PDF (Startliste, Ergebnisse,
+Urkunden, Wertungskarten), Siegerliste als Excel/CSV und Urkunden als
+Word-Dokument. Audit-Log und JSON-Backup inklusive. Alles im Browser.
+
+Unterstuetzte Sportarten (via Berechnungs-Arten, beliebig erweiterbar):
+Turnen maennlich/weiblich (4-/6-Kampf), RSG, Rope Skipping, Leichtathletik.
 
 ## Stack
 
@@ -48,18 +51,28 @@ git pull
 docker compose up -d --build
 ```
 
-Schema-Migrationen (Audit-Tabelle, Logo-Spalten) sind als idempotente
-SQL-Scripts (`db/04_audit.sql`, `db/05_logos.sql`) eingebaut — laufen
-automatisch beim Start des DB-Containers. Existierende Daten bleiben.
+**Wichtig bei bestehender DB:** MySQL fuehrt die Scripts in
+`/docker-entrypoint-initdb.d` nur beim ALLERERSTEN Start (leeres Volume) aus.
+Fuer ein Update einer bestehenden Datenbank die idempotenten Migrationen
+manuell einspielen, z.B. fuer v0.4:
+
+```bash
+docker compose exec -T db mysql -u"$DB_USER" -p"$DB_PASSWORD" < db/07_v04.sql
+```
+
+(`db/04_audit.sql` … `db/07_v04.sql` sind alle idempotent — mehrfaches
+Einspielen schadet nicht, existierende Daten bleiben.)
 
 ## Features
 
 | Bereich            | Was es kann                                                                  |
 |--------------------|-------------------------------------------------------------------------------|
-| **Stammdaten**     | Vereine (mit Logo), Altersklassen, Geraete, Berechnungs-Arten, Benutzer (4 Rollen) — alle inline editierbar |
-| **Wettkaempfe**    | Wettkampftage (mit Logo) → Wettkaempfe → Geraete-Zuordnung mit Berechnungs-Regel, Reihenfolge per ▲▼-Buttons |
+| **Stammdaten**     | Vereine (mit Logo), Altersklassen, Geraete, Berechnungs-Arten, Benutzer (5 Rollen) — alle inline editierbar |
+| **Wettkaempfe**    | Wettkampftage (mit Logo, Meldeschluss) → Wettkaempfe → Geraete-Zuordnung mit Berechnungs-Regel, Reihenfolge per ▲▼-Buttons |
+| **Feld-Labels**    | Jedes Geraet kann pro Wettkampf eine eigene Beschriftung bekommen (z.B. "Feld 1 — Speed 30s") — erscheint in Eingabe, Live, PDFs und Exporten |
 | **Riegen + Teams** | Startgruppen mit Startzeit; Mannschaften mit "beste N gewerteten Mitglieder" |
-| **Anmeldung**      | Personen anmelden, Startnummern, Riege/Mannschaft, Status (DQ/Rueckzug mit Begruendung) |
+| **Anmeldung**      | Personen anmelden, Startnummern (inkl. Auto-Vergabe fuer Trainer-Meldungen), Riege/Mannschaft, Status (DQ/Rueckzug mit Begruendung) |
+| **Trainer-Portal** | Trainer melden Teilnehmer des eigenen Vereins unter `/melden` — nur bei Status "Anmeldung" und vor dem Meldeschluss; neue Athleten koennen direkt angelegt werden |
 | **Massen-Import**  | CSV-Upload mit Vorschau-Modus, Auto-Vereins-Anlage |
 | **Eingabe**        | Tisch-Modus (alle Richter-Wertungen auf einer Maske) + Single-Modus (eigene Wertung) — einzelne Slots loeschbar/editierbar |
 | **Live-Ansicht**   | Oeffentlich, kein Login, mobile-friendly, **WebSocket-Push** (Update kommt instant), Per-Geraet-Spalten |
@@ -67,9 +80,12 @@ automatisch beim Start des DB-Containers. Existierende Daten bleiben.
 | **Riegen-Status**  | Wer ist wo? Pro Riege/Geraet wieviele Mitglieder schon fertig sind |
 | **Athleten-Profil**| Alle Wettkampf-Teilnahmen, Platzierung und Score |
 | **PDF-Export**     | Startliste, Ergebnisse, Urkunden (auch Top-N), leere **Wertungskarten** je Geraet, Tag-Gesamt-PDF — Logos werden eingebettet |
+| **Siegerliste**    | Excel (`siegerliste.xlsx`, pro Wettkampf oder ganzer Tag mit einem Blatt je Wettkampf) und CSV |
+| **Urkunden Word**  | `urkunden.docx` — eine Urkunden-Seite pro Athlet, vor dem Druck frei in Word anpassbar (auch Top-N) |
 | **CSV-Export**     | Ergebnisse pro Wettkampf als UTF-8-CSV (Excel-freundlich) |
-| **Audit-Log**      | Wer hat wann welchen Score eingetragen / geaendert / geloescht |
+| **Audit-Log**      | Wer hat wann welchen Score eingetragen / geaendert / geloescht (inkl. Trainer-Meldungen) |
 | **JSON-Backup**    | Vollstaendiger Snapshot eines Wettkampftags zum Download |
+| **DB-Backup**      | `scripts/backup_db.sh` (mysqldump, komprimiert) + `scripts/restore_db.sh` |
 | **Auto-Logout**    | Nach 60 Min Inaktivitaet (konfigurierbar via SESSION_MAX_AGE) |
 | **CSRF-Schutz**    | Auf allen POST-Forms |
 
@@ -78,11 +94,29 @@ automatisch beim Start des DB-Containers. Existierende Daten bleiben.
 - `admin`         — alles
 - `tisch`         — Anmeldungen + Eingabe (Tisch-Modus, traegt fuer mehrere Richter ein)
 - `kampfrichter`  — Eingabe (Single-Modus, eigene Wertung pro Versuch — eigener Slot wird automatisch vergeben)
+- `trainer`       — Meldeportal `/melden`: meldet Teilnehmer des EIGENEN Vereins (Verein-Zuordnung beim Anlegen des Users Pflicht)
 - `viewer`        — nur lesen
 
 ## Eigene Sportarten / neue Berechnungs-Arten
 
-Score-Logik liegt komplett in Python (`app/scoring/*`).
+Score-Logik liegt komplett in Python (`app/scoring/*`). Bereits eingebaut:
+
+| Kuerzel               | Sportart                | Kriterien pro Richter |
+|-----------------------|-------------------------|------------------------|
+| `TURNEN_OLYMPIC_TRIM` | Turnen (E-Note-Trim)    | D_Note, E_Note (+ Abzug) |
+| `TURNEN_AVG`          | Turnen (Schnitt)        | D_Note, E_Note (+ Abzug) |
+| `RSG_STANDARD`        | Rhythmische Sportgymnastik | D_Note, E_Note (+ A_Note, Abzug) |
+| `ROPE_SPEED`          | Rope Skipping Speed     | Anzahl (kleinster Zaehlwert zaehlt) |
+| `ROPE_FREESTYLE`      | Rope Skipping Freestyle | Schwierigkeit, Praesentation (+ Abzug) |
+| `LA_DIRECT`           | Leichtathletik Weite/Hoehe | Wert |
+| `LA_SPRINT`           | Leichtathletik Zeit     | Wert (kleiner = besser) |
+| `MANUELL`             | beliebig                | Wert wird direkt Score |
+
+Hinweis Volleyball & andere Spielsportarten: Begegnungen (Team gegen Team,
+Saetze, Spielplaene) passen nicht in dieses Geraete-/Wertungs-Modell und
+brauchen ein eigenes Turnier-Modul — nicht versuchen, sie ueber `MANUELL`
+abzubilden.
+
 Schritte fuer eine neue Berechnung:
 
 1. Neue Klasse `MeineRegel(ScoringStrategy)` in `app/scoring/<sport>.py`.
@@ -97,11 +131,14 @@ aenderst, werden alle bestehenden Versuche **automatisch neu durchgerechnet**.
 
 ## DB-Schema
 
-- `01_schema.sql` — Tabellen
+- `00_reset_dev.sql` — NUR Entwicklung: loescht die komplette DB (wird nicht gemountet!)
+- `01_schema.sql` — Tabellen (legt nur an, loescht nichts)
 - `02_views.sql` — Live-Ranglisten als Views (kein Cache zu pflegen)
 - `03_seed.sql` — Default-Stammdaten (Berechnungs-Arten, Altersklassen, Geraete)
 - `04_audit.sql` — Audit-Tabelle (idempotente Migration)
 - `05_logos.sql` — Logo-Spalten (idempotente Migration)
+- `06_concurrency.sql` — Optimistic-Locking-Spalte (idempotente Migration)
+- `07_v04.sql` — v0.4: Feld-Labels, Trainer-Rolle, Meldeschluss, neue Berechnungs-Arten (idempotente Migration)
 - `99_demo_data.sql` — optional, Demo-Daten (Wettkampftag mit Athleten, Mannschaft, Riege)
 
 ## Live-Scoring im Detail
@@ -114,16 +151,27 @@ aenderst, werden alle bestehenden Versuche **automatisch neu durchgerechnet**.
 
 ## Backup-Empfehlung
 
-Vor jedem Wettkampfstart **und** nach dem Wettkampf:
+**Am Wettkampftag:** regelmaessige SQL-Dumps laufen lassen (z.B. alle 10 Min):
+
+```bash
+./scripts/backup_db.sh                 # einmalig
+watch -n 600 ./scripts/backup_db.sh    # alle 10 Minuten
+```
+
+Die Dumps landen komprimiert in `./backups/` — den Ordner am besten auf einen
+USB-Stick oder ein zweites Geraet syncen. Wiederherstellen:
+
+```bash
+./scripts/restore_db.sh backups/wettkampfDB-20260711-101500.sql.gz
+```
+
+**Den Restore VOR dem Wettkampf einmal testen!**
+
+Zusaetzlich vor und nach dem Wettkampf:
 
 1. Im Admin-Bereich `→ Backup` den Wettkampftag auswaehlen.
-2. JSON herunterladen, auf einem zweiten Geraet ablegen.
-3. Bei Datenverlust kann die JSON-Datei als Beweisstueck dienen — automatischer
-   Restore ist nicht eingebaut, aber das Format ist klar genug fuer manuelle
-   Wiederherstellung per Hand oder Script.
-
-Zusaetzlich oder alternativ: das DB-Volume sichern via
-`docker run --rm -v v03_db_data:/data -v $(pwd):/backup ubuntu tar czf /backup/db.tgz /data`.
+2. JSON herunterladen, auf einem zweiten Geraet ablegen (dient als
+   menschenlesbares Beweisstueck, z.B. bei Einspruechen).
 
 ## Test-Workflow (Demo-Daten)
 

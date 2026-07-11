@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import RedirectResponse
@@ -19,18 +19,32 @@ def list_tage(request: Request, db: Session = Depends(get_db),
     return render(request, db, "wettkampf/tage_liste.html", items=items)
 
 
+def _parse_meldeschluss(request: Request, raw: str) -> datetime | None:
+    """datetime-local Input ('2026-05-01T18:00') -> datetime oder None."""
+    raw = raw.strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        flash(request, "error", f"Meldeschluss '{raw}' nicht lesbar — ignoriert.")
+        return None
+
+
 @router.post("")
 def create_tag(request: Request,
                Name: str = Form(...),
                Wettkampf_Datum: str = Form(...),
                Ort: str = Form(""),
                Veranstalter: str = Form(""),
+               Meldeschluss: str = Form(""),
                db: Session = Depends(get_db),
                user=Depends(require_user("admin"))):
     db.add(WettkampfTag(
         Name=Name.strip(),
         Wettkampf_Datum=date.fromisoformat(Wettkampf_Datum),
         Ort=Ort or None, Veranstalter=Veranstalter or None,
+        Meldeschluss=_parse_meldeschluss(request, Meldeschluss),
     ))
     db.commit()
     flash(request, "success", f"Wettkampftag '{Name}' angelegt.")
@@ -43,6 +57,7 @@ def update_tag(request: Request, tid: int,
                Wettkampf_Datum: str = Form(...),
                Ort: str = Form(""),
                Veranstalter: str = Form(""),
+               Meldeschluss: str = Form(""),
                db: Session = Depends(get_db),
                user=Depends(require_user("admin"))):
     obj = db.get(WettkampfTag, tid)
@@ -51,6 +66,7 @@ def update_tag(request: Request, tid: int,
         obj.Wettkampf_Datum = date.fromisoformat(Wettkampf_Datum)
         obj.Ort = Ort or None
         obj.Veranstalter = Veranstalter or None
+        obj.Meldeschluss = _parse_meldeschluss(request, Meldeschluss)
         db.commit()
         flash(request, "success", "Wettkampftag aktualisiert.")
     return RedirectResponse(f"/tage/{tid}", status_code=303)

@@ -42,6 +42,14 @@
   </form>
 
   <div class="card lg:col-span-2 overflow-x-auto">
+    {% set ohne_nr = angemeldete|selectattr('Startnummer', 'none')|list|length %}
+    {% if ohne_nr %}
+    <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/startnummern-vergeben" class="mb-3">
+      {{ csrf_input(request) }}
+      <button class="btn btn-primary">🔢 {{ ohne_nr }} fehlende Startnummern automatisch vergeben</button>
+      <span class="text-xs text-slate-500 ml-2">(z.B. nach Trainer-Meldungen)</span>
+    </form>
+    {% endif %}
     <table class="table">
       <thead><tr><th>Nr</th><th>Person</th><th>Verein</th><th>Riege</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th><th></th></tr></thead>
       <tbody>

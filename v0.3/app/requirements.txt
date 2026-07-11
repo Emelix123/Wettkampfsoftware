@@ -9,3 +9,5 @@ itsdangerous==2.2.0
 bcrypt==4.2.1
 pydantic==2.10.4
 weasyprint==63.1
+openpyxl==3.1.5
+python-docx==1.1.2

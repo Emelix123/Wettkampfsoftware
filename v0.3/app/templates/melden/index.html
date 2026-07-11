@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Meldung{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <h1 class="text-2xl font-bold">📝 Teilnehmer melden</h1>
+  <div class="text-slate-500 text-sm">Verein: <strong>{{ verein.Kuerzel }} — {{ verein.Name }}</strong></div>
+</div>
+
+{% if offene %}
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Wettkampftag</th><th>Datum</th><th>Wettkampf</th><th>Altersklasse</th><th>Meldeschluss</th><th>Eigene Meldungen</th><th></th></tr></thead>
+    <tbody>
+      {% for wk in offene %}
+      {% set ms = wk.tag.Meldeschluss %}
+      {% set abgelaufen = ms and jetzt > ms %}
+      <tr {% if abgelaufen %}class="opacity-60"{% endif %}>
+        <td>{{ wk.tag.Name }}</td>
+        <td>{{ wk.tag.Wettkampf_Datum }}</td>
+        <td class="font-medium">{{ wk.Wettkampf_Nr }} · {{ wk.Name }}</td>
+        <td>{{ wk.altersklasse.Kuerzel }}</td>
+        <td>
+          {% if ms %}
+            {% if abgelaufen %}<span class="badge badge-red">{{ ms.strftime('%d.%m.%Y %H:%M') }} (vorbei)</span>
+            {% else %}<span class="badge badge-amber">{{ ms.strftime('%d.%m.%Y %H:%M') }}</span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td>{{ counts.get(wk.idWettkampf, 0) }}</td>
+        <td class="text-right">
+          <a class="btn {% if abgelaufen %}btn-ghost{% else %}btn-primary{% endif %}" href="/melden/{{ wk.idWettkampf }}">
+            {% if abgelaufen %}ansehen{% else %}melden{% endif %}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card text-center py-8 text-slate-500">
+  <div class="text-4xl mb-2">⏳</div>
+  <div class="font-medium">Aktuell ist kein Wettkampf zur Meldung geoeffnet.</div>
+  <div class="text-sm mt-1">Sobald der Veranstalter einen Wettkampf in die Meldephase setzt, erscheint er hier.</div>
+</div>
+{% endif %}
+{% endblock %}

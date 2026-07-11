@@ -35,6 +35,9 @@
         <a href="/tage"          class="px-3 py-1.5 rounded hover:bg-slate-100">Wettkampftage</a>
         <a href="/personen"      class="px-3 py-1.5 rounded hover:bg-slate-100">Personen</a>
         <a href="/live"          class="px-3 py-1.5 rounded hover:bg-slate-100">Live-Ansicht</a>
+        {% if user.role in ('trainer', 'admin') %}
+        <a href="/melden"        class="px-3 py-1.5 rounded hover:bg-slate-100">Meldung</a>
+        {% endif %}
         {% if user.role == 'admin' %}
         <a href="/admin"         class="px-3 py-1.5 rounded hover:bg-slate-100">Admin</a>
         {% endif %}
@@ -67,7 +70,7 @@
   </main>
 
   <footer class="text-center text-xs text-slate-400 py-4">
-    Wettkampfsoftware v0.3 · {{ now.year }}
+    Wettkampfsoftware v0.4 · {{ now.year }}
   </footer>
 
 </body>
