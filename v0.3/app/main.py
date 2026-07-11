@@ -10,6 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import settings
 from auth import ensure_default_admin
 from csrf import csrf_dep, install_template_global
+from migrations import run_startup_migrations
 from routers import (
     auth as auth_router,
     dashboard, admin, wettkampftag, wettkampf, personen,
@@ -20,12 +21,15 @@ from views import templates
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Startup: wartet bis 90s auf die DB und legt dann den Default-Admin an.
-    Faengt JEDEN Fehler ab (OperationalError, ProgrammingError vor dem
-    Init-Script-Lauf, Network-Errors)."""
+    """Startup: wartet bis 90s auf die DB, zieht dann fehlende Schema-
+    Migrationen nach (wichtig bei bestehendem DB-Volume einer aelteren
+    Version!) und legt den Default-Admin an. Faengt JEDEN Fehler ab
+    (OperationalError, ProgrammingError vor dem Init-Script-Lauf,
+    Network-Errors)."""
     last_err = None
     for attempt in range(1, 91):
         try:
+            run_startup_migrations()
             ensure_default_admin()
             print(f"[startup] Admin-Setup OK (Versuch {attempt}).")
             break

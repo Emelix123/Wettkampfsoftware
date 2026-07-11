@@ -1,12 +1,10 @@
 -- Migration: Logo-Spalten fuer Verein und Wettkampftag.
 -- Idempotent: prueft erst ob Spalte existiert (per INFORMATION_SCHEMA).
+-- ACHTUNG: hier duerfen KEINE blanken ALTER TABLE ... ADD COLUMN stehen —
+-- auf einer frischen DB (01_schema.sql enthaelt die Spalten schon) wuerde
+-- "Duplicate column" die restliche Container-Initialisierung abbrechen
+-- (06_*, 07_*, 99_* liefen dann nie).
 USE wettkampfDB;
-ALTER TABLE Wettkampf_Tag ADD COLUMN Logo MEDIUMBLOB NULL;
-ALTER TABLE Wettkampf_Tag ADD COLUMN Logo_MimeType VARCHAR(60) NULL;
-ALTER TABLE Verein        ADD COLUMN Logo MEDIUMBLOB NULL;
-ALTER TABLE Verein        ADD COLUMN Logo_MimeType VARCHAR(60) NULL;
-ALTER TABLE Wettkampf_Tag MODIFY Logo_MimeType VARCHAR(60) NULL;
-ALTER TABLE Verein        MODIFY Logo_MimeType VARCHAR(60) NULL;
 DROP PROCEDURE IF EXISTS add_logo_column;
 DELIMITER $$
 CREATE PROCEDURE add_logo_column(IN tbl VARCHAR(64), IN col VARCHAR(64))

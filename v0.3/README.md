@@ -51,13 +51,15 @@ git pull
 docker compose up -d --build
 ```
 
-**Wichtig bei bestehender DB:** MySQL fuehrt die Scripts in
-`/docker-entrypoint-initdb.d` nur beim ALLERERSTEN Start (leeres Volume) aus.
-Fuer ein Update einer bestehenden Datenbank die idempotenten Migrationen
-manuell einspielen, z.B. fuer v0.4:
+**Bestehende DB:** MySQL fuehrt die Scripts in `/docker-entrypoint-initdb.d`
+nur beim ALLERERSTEN Start (leeres Volume) aus. Fehlende Spalten neuer
+Versionen zieht die App deshalb **automatisch beim Start** nach
+(`app/migrations.py`, idempotent) — ein bestehendes Volume von v0.3 wird
+also einfach weiterverwendet, ohne dass man manuell etwas einspielen muss.
+Wer die Migration lieber selbst per SQL macht:
 
 ```bash
-docker compose exec -T db mysql -u"$DB_USER" -p"$DB_PASSWORD" < db/07_v04.sql
+docker compose exec -T db mysql -u"$DB_USER" -p"$DB_PASSWORD" wettkampfDB < db/07_v04.sql
 ```
 
 (`db/04_audit.sql` … `db/07_v04.sql` sind alle idempotent — mehrfaches

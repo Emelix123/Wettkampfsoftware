@@ -1,8 +1,7 @@
 -- Migration: Updated_At-Spalte fuer Optimistic Locking auf Einzel_Ergebnis.
 -- Idempotent (CALL mit INFORMATION_SCHEMA-Check), laeuft auch auf bestehenden DBs.
+-- Kein blankes ALTER TABLE hier — siehe Hinweis in 05_logos.sql.
 USE wettkampfDB;
-ALTER TABLE Einzel_Ergebnis ADD COLUMN Updated_At TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
-
 DROP PROCEDURE IF EXISTS add_updated_at;
 DELIMITER $$
 CREATE PROCEDURE add_updated_at(IN tbl VARCHAR(64), IN col VARCHAR(64))
