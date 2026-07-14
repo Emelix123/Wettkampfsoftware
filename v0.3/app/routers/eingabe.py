@@ -17,14 +17,30 @@ from auth import require_user
 from database import get_db
 from live_pubsub import CHANNEL
 from models import (
-    Wettkampf, GeraeteHasWettkampf, PersonenHasWettkampf,
-    EinzelErgebnis, KampfrichterWertung, KampfrichterWertungDetail,
+    Wettkampf, Geraete, GeraeteHasWettkampf, PersonenHasWettkampf, Personen,
+    Riege, EinzelErgebnis, KampfrichterWertung, KampfrichterWertungDetail,
 )
 from scoring import get_strategy
 from services.score_service import recalc_versuch
 from views import render, flash
 
 router = APIRouter(prefix="/eingabe")
+
+
+def _back_url(wid: int, gid: int, form: dict) -> str:
+    """Redirect-Ziel nach save/delete/clear — Modus- und Riegen-Filter
+    aus dem Formular durchschleifen, damit die Auswahl erhalten bleibt.
+    Die geraeteuebergreifende Maske schickt ihre komplette URL als 'back'."""
+    back = form.get("back") or ""
+    if back.startswith("/eingabe"):
+        return back
+    params = []
+    if form.get("mode"):
+        params.append(f"mode={form['mode']}")
+    if form.get("riege") not in (None, ""):
+        params.append(f"riege={form['riege']}")
+    qs = ("?" + "&".join(params)) if params else ""
+    return f"/eingabe/{wid}/{gid}{qs}"
 
 
 def _get_or_create_versuch(db: Session, wid: int, gid: int, pid: int, vnr: int) -> EinzelErgebnis:
@@ -43,6 +59,105 @@ def _get_or_create_versuch(db: Session, wid: int, gid: int, pid: int, vnr: int) 
     )
     db.add(ee); db.commit(); db.refresh(ee)
     return ee
+
+
+@router.get("")
+def geraet_global(request: Request,
+                  gid: Optional[int] = Query(None),
+                  wettkampf: Optional[int] = Query(None),
+                  riege: Optional[int] = Query(None),
+                  q: Optional[str] = Query(None),
+                  snr: Optional[int] = Query(None),
+                  db: Session = Depends(get_db),
+                  user=Depends(require_user(("admin", "tisch")))):
+    """Geraeteuebergreifende Eingabe: EIN Geraet, Athleten aus ALLEN
+    Wettkaempfen, die dieses Geraet nutzen. Filter: Wettkampf, Riege,
+    Name, Startnummer."""
+    geraete_alle = (
+        db.query(Geraete)
+        .join(GeraeteHasWettkampf, GeraeteHasWettkampf.Geraete_id == Geraete.idGeraete)
+        .distinct().order_by(Geraete.Name).all()
+    )
+
+    ghws: list[GeraeteHasWettkampf] = []
+    starter: list[PersonenHasWettkampf] = []
+    riegen: list[Riege] = []
+    ghw_map: dict[int, GeraeteHasWettkampf] = {}
+    kriterien_map: dict[int, list[str]] = {}
+    versuch_map: dict[tuple[int, int, int], EinzelErgebnis] = {}
+    wertung_map: dict[tuple[int, int, int], dict[int, dict[str, float]]] = {}
+
+    if gid:
+        ghws = (
+            db.query(GeraeteHasWettkampf)
+            .join(Wettkampf, Wettkampf.idWettkampf == GeraeteHasWettkampf.Wettkampf_id)
+            .filter(GeraeteHasWettkampf.Geraete_id == gid)
+            .order_by(Wettkampf.Wettkampf_Nr)
+            .all()
+        )
+        ghw_map = {g.Wettkampf_id: g for g in ghws}
+        kriterien_map = {
+            g.Wettkampf_id: get_strategy(g.berechnung.Regel_Kuerzel).alle_kriterien
+            for g in ghws
+        }
+        wids = [g.Wettkampf_id for g in ghws]
+        if wettkampf:
+            wids = [w for w in wids if w == wettkampf]
+
+        riegen = (
+            db.query(Riege).filter(Riege.Wettkampf_id.in_(wids))
+            .order_by(Riege.Wettkampf_id, Riege.Bezeichnung).all()
+        ) if wids else []
+
+        if wids:
+            starter_q = (
+                db.query(PersonenHasWettkampf)
+                .join(Personen, Personen.idPersonen == PersonenHasWettkampf.Personen_id)
+                .filter(PersonenHasWettkampf.Wettkampf_id.in_(wids))
+                .filter(PersonenHasWettkampf.Start_Status.in_(["Gemeldet", "Gestartet"]))
+            )
+            if riege is not None:
+                if riege == 0:  # 0 = ohne Riege
+                    starter_q = starter_q.filter(PersonenHasWettkampf.Riege_id.is_(None))
+                else:
+                    starter_q = starter_q.filter(PersonenHasWettkampf.Riege_id == riege)
+            if q and q.strip():
+                like = f"%{q.strip()}%"
+                starter_q = starter_q.filter(
+                    (Personen.Nachname.like(like)) | (Personen.Vorname.like(like))
+                )
+            if snr is not None:
+                starter_q = starter_q.filter(PersonenHasWettkampf.Startnummer == snr)
+            starter = starter_q.order_by(
+                PersonenHasWettkampf.Wettkampf_id,
+                PersonenHasWettkampf.Riege_id.is_(None),
+                PersonenHasWettkampf.Riege_id,
+                PersonenHasWettkampf.Startnummer,
+            ).all()
+
+            versuche = (
+                db.query(EinzelErgebnis)
+                .filter(EinzelErgebnis.Geraete_id == gid,
+                        EinzelErgebnis.Wettkampf_id.in_(wids))
+                .all()
+            )
+            for e in versuche:
+                versuch_map[(e.Wettkampf_id, e.Personen_id, e.Versuch_Nr)] = e
+                slots: dict[int, dict[str, float]] = {}
+                for w in e.wertungen:
+                    slots[w.Richter_Slot] = {d.Kriterium: float(d.Wert) for d in w.details}
+                wertung_map[(e.Wettkampf_id, e.Personen_id, e.Versuch_Nr)] = slots
+
+    back = request.url.path
+    if request.url.query:
+        back += "?" + request.url.query
+    return render(request, db, "eingabe/global.html",
+                  geraete_alle=geraete_alle, gid=gid, ghws=ghws,
+                  ghw_map=ghw_map, kriterien_map=kriterien_map,
+                  starter=starter, riegen=riegen,
+                  versuch_map=versuch_map, wertung_map=wertung_map,
+                  wettkampf_filter=wettkampf, riege_filter=riege,
+                  q=q or "", snr=snr, back=back)
 
 
 @router.get("/{wid}")
@@ -136,7 +251,7 @@ async def save(request: Request, wid: int, gid: int,
         versuch = int(form.get("versuch", "1"))
     except ValueError:
         flash(request, "error", "Ungueltige Form-Daten.")
-        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+        return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
     # Checkbox: HTML schickt das Feld nur wenn angekreuzt -> Anwesenheit pruefen.
     ist_gueltig = "ist_gueltig" in form
@@ -155,7 +270,7 @@ async def save(request: Request, wid: int, gid: int,
                   f"Versuch wurde inzwischen von jemand anderem geaendert "
                   f"(jetzt: {current_iso}, dein Stand: {seen_updated_at}). "
                   f"Bitte Seite neu laden, dann nochmal speichern.")
-            return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+            return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
     ee = _get_or_create_versuch(db, wid, gid, pid, versuch)
     ee.Ist_Gueltig = 1 if ist_gueltig else 0
@@ -194,7 +309,7 @@ async def save(request: Request, wid: int, gid: int,
     if user.role == "kampfrichter":
         eingabe_slot_keys = list(slot_data.keys())
         if not eingabe_slot_keys:
-            return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+            return RedirectResponse(_back_url(wid, gid, form), status_code=303)
         # Ignoriere alle Slots ausser dem ersten (Single-Mode-Form hat eh nur slot1)
         eingabe_kv = slot_data[eingabe_slot_keys[0]]
 
@@ -249,7 +364,7 @@ async def save(request: Request, wid: int, gid: int,
     # aktualisiert sich sofort via WebSocket-Trigger.
     await CHANNEL.publish(wid)
     flash(request, "success", f"Versuch {versuch} fuer Startnummer/Person #{pid} gespeichert.")
-    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
 
 @router.post("/{wid}/{gid}/slot/delete")
@@ -268,17 +383,17 @@ async def slot_delete(request: Request, wid: int, gid: int,
                    Personen_id=pid, Versuch_Nr=versuch).first()
     )
     if not ee:
-        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+        return RedirectResponse(_back_url(wid, gid, form), status_code=303)
     w = (
         db.query(KampfrichterWertung)
         .filter_by(Einzel_Ergebnis_id=ee.idEinzel_Ergebnis, Richter_Slot=slot)
         .first()
     )
     if not w:
-        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+        return RedirectResponse(_back_url(wid, gid, form), status_code=303)
     if user.role == "kampfrichter" and w.Richter_user_id != user.id:
         flash(request, "error", "Du kannst nur deine eigene Wertung loeschen.")
-        return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+        return RedirectResponse(_back_url(wid, gid, form), status_code=303)
     # ID merken — nach delete+commit ist das Python-Objekt expired.
     wertung_id = w.idWertung
     db.delete(w); db.commit()
@@ -290,7 +405,7 @@ async def slot_delete(request: Request, wid: int, gid: int,
                "person_id": pid, "versuch": versuch, "slot": slot})
     await CHANNEL.publish(wid)
     flash(request, "success", f"Slot R{slot} geloescht und neu berechnet.")
-    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
 
 @router.post("/{wid}/{gid}/clear")
@@ -313,4 +428,4 @@ async def clear_versuch(request: Request, wid: int, gid: int,
         db.delete(ee); db.commit()
         await CHANNEL.publish(wid)
         flash(request, "success", "Versuch geloescht.")
-    return RedirectResponse(f"/eingabe/{wid}/{gid}", status_code=303)
+    return RedirectResponse(_back_url(wid, gid, form), status_code=303)

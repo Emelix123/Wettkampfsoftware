@@ -1,0 +1,61 @@
+{% extends "pdf/_base.html" %}
+{% block title %}Laufkarten — {{ wk.Name }}{% endblock %}
+{% block content %}
+{# Eine Seite pro Person mit ALLEN Geraeten drauf — die Laufkarte begleitet
+   den Athleten von Geraet zu Geraet. #}
+{% for s in starter %}
+<div style="page-break-after: always; padding-top: 4mm;">
+  <footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }}</footer>
+  <h1 style="font-size:16pt; margin-bottom: 2mm;">Laufkarte</h1>
+  <div class="meta">{{ wk.Wettkampf_Nr }} · {{ wk.Name }} · {{ wk.altersklasse.Kuerzel }}</div>
+
+  <table style="margin-top: 4pt; margin-bottom: 10pt;">
+    <tbody>
+      <tr>
+        <td style="width:20%; background:#f1f5f9;"><strong>Startnummer</strong></td>
+        <td style="width:30%; font-size:20pt;">{{ s.Startnummer or '—' }}</td>
+        <td style="width:20%; background:#f1f5f9;"><strong>Riege</strong></td>
+        <td>{{ s.riege.Bezeichnung if s.riege else '—' }}</td>
+      </tr>
+      <tr>
+        <td style="background:#f1f5f9;"><strong>Athlet</strong></td>
+        <td style="font-size:13pt;">{{ s.person.Nachname }}, {{ s.person.Vorname }}</td>
+        <td style="background:#f1f5f9;"><strong>Verein</strong></td>
+        <td>{{ s.person.verein.Kuerzel if s.person.verein else '—' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% for block in geraete_blocks %}
+    {% set ghw = block.ghw %}
+    {% set kriterien = block.kriterien %}
+    <div style="page-break-inside: avoid; margin-bottom: 6pt;">
+      <h2 style="margin: 6pt 0 3pt 0; font-size:12pt;">{{ ghw.anzeige_name }}
+        <span style="font-weight:normal; color:#666; font-size:9pt;">({{ ghw.Erwartete_Kampfrichter }} Richter{% if ghw.Anzahl_Versuche > 1 %}, {{ ghw.Anzahl_Versuche }} Versuche{% endif %})</span>
+      </h2>
+      <table style="font-size:9pt; margin-bottom: 2pt;">
+        <thead>
+          <tr>
+            <th style="width:14%;">Richter</th>
+            {% for k in kriterien %}<th style="text-align:center;">{{ k }}</th>{% endfor %}
+            <th style="width:24%;">Unterschrift</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vnr in range(1, ghw.Anzahl_Versuche + 1) %}
+          {% for slot in range(1, ghw.Erwartete_Kampfrichter + 1) %}
+          <tr style="height:15pt;">
+            <td><strong>{% if ghw.Anzahl_Versuche > 1 %}V{{ vnr }} · {% endif %}R{{ slot }}</strong></td>
+            {% for k in kriterien %}<td style="border:1px solid #888;"></td>{% endfor %}
+            <td style="border-bottom:1px solid #888;"></td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="font-size:8pt; color:#888;">Gueltig: ☐ ja  ☐ nein (Fehlversuch) — Notiz: ____________________________</div>
+    </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

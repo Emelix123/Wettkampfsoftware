@@ -13,15 +13,19 @@ Eine Strategy beschreibt:
 """
 
 from .base import ScoringStrategy, ScoringInput, ScoringResult
-from .turnen import TurnenOlympicTrim, TurnenAvg
+from .turnen import (
+    TurnenOlympicTrim, TurnenAvg, TurnenDEPenalty, TurnenDEPenaltyBasis10,
+)
 from .leichtathletik import LaDirect, LaSprint
 from .manuell import Manuell
 from .rsg import RsgStandard
 from .rope_skipping import RopeSpeed, RopeFreestyle
 
 REGISTRY: dict[str, ScoringStrategy] = {
-    "TURNEN_OLYMPIC_TRIM": TurnenOlympicTrim(),
-    "TURNEN_AVG":          TurnenAvg(),
+    "TURNEN_OLYMPIC_TRIM":   TurnenOlympicTrim(),
+    "TURNEN_AVG":            TurnenAvg(),
+    "TURNEN_DE_PENALTY":     TurnenDEPenalty(),
+    "TURNEN_DE_PENALTY_B10": TurnenDEPenaltyBasis10(),
     "LA_DIRECT":           LaDirect(),
     "LA_SPRINT":           LaSprint(),
     "MANUELL":             Manuell(),

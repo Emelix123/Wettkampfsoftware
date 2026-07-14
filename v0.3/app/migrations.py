@@ -83,6 +83,10 @@ _SEED = [
     "('RSG_STANDARD',   'RSG (D + A + E)',        'Rhythmische Sportgymnastik: D-Note + A-Note (optional) + E-Note (Trim bei >=3 Richtern) - Abzug.'),"
     "('ROPE_SPEED',     'Rope Skipping Speed',     'Zaehlwert (kleinster Wert bei mehreren Zaehlern) * Faktor + Offset.'),"
     "('ROPE_FREESTYLE', 'Rope Skipping Freestyle', 'Schwierigkeit + Praesentation (Trim bei >=3 Richtern) - Abzug.')",
+    # Turnen mit 1 Kampfrichter (v0.5)
+    "INSERT IGNORE INTO `Berechnungs_Art` (`Regel_Kuerzel`, `Bezeichnung`, `Beschreibung`) VALUES "
+    "('TURNEN_DE_PENALTY',     'Turnen: D + E - Penalty (1 KR)',            'D-Note + E-Note - Penalty (optional). Fuer 1 Kampfrichter; bei mehreren wird gemittelt.'),"
+    "('TURNEN_DE_PENALTY_B10', 'Turnen: D + (10 - E-Abzug) - Penalty (1 KR)', 'Kampfrichter traegt nur den E-Abzug ein, System rechnet E = 10 - Abzug. Score = D + E - Penalty.')",
     "INSERT IGNORE INTO `Geraete` (`Name`, `Einheit`, `Beschreibung`) VALUES "
     "('RSG Reifen', 'Pkt', 'RSG Handgeraet Reifen'),"
     "('RSG Ball',   'Pkt', 'RSG Handgeraet Ball'),"

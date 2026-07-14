@@ -42,6 +42,60 @@ class TurnenOlympicTrim(ScoringStrategy):
         })
 
 
+class TurnenDEPenalty(ScoringStrategy):
+    """Einfaches Turnen-Schema (typisch 1 Kampfrichter):
+    Score = D-Note + E-Note - Penalty. Penalty darf leer bleiben.
+    Bei mehreren Richtern wird je Feld der Schnitt genommen."""
+    code = "TURNEN_DE_PENALTY"
+    label = "Turnen: D + E - Penalty (1 Kampfrichter)"
+    required_kriterien = ["D_Note", "E_Note"]
+    optional_kriterien = ["Penalty"]
+
+    def compute(self, inp: ScoringInput) -> ScoringResult:
+        if len(inp.judge_values) < inp.expected_judges:
+            return ScoringResult(score=None, breakdown={
+                "wartet_auf_richter": float(inp.expected_judges - len(inp.judge_values)),
+            })
+        d = _avg([v["D_Note"] for v in inp.judge_values if "D_Note" in v])
+        e = _avg([v["E_Note"] for v in inp.judge_values if "E_Note" in v])
+        penalty = _avg([v.get("Penalty", 0.0) for v in inp.judge_values])
+
+        score = (d + e - penalty) * inp.faktor + inp.offset
+        return ScoringResult(score=round(score, 3), breakdown={
+            "D_Note": round(d, 3),
+            "E_Note": round(e, 3),
+            "Penalty": round(penalty, 3),
+        })
+
+
+class TurnenDEPenaltyBasis10(ScoringStrategy):
+    """Wie TURNEN_DE_PENALTY, aber der Kampfrichter traegt nur den E-ABZUG ein;
+    das System rechnet E = 10 - Abzug. Erspart dem Richter das Umrechnen.
+    Score = D-Note + (10 - E-Abzug) - Penalty."""
+    code = "TURNEN_DE_PENALTY_B10"
+    label = "Turnen: D + (10 - E-Abzug) - Penalty (1 Kampfrichter)"
+    required_kriterien = ["D_Note", "E_Abzug"]
+    optional_kriterien = ["Penalty"]
+
+    def compute(self, inp: ScoringInput) -> ScoringResult:
+        if len(inp.judge_values) < inp.expected_judges:
+            return ScoringResult(score=None, breakdown={
+                "wartet_auf_richter": float(inp.expected_judges - len(inp.judge_values)),
+            })
+        d = _avg([v["D_Note"] for v in inp.judge_values if "D_Note" in v])
+        e_abzug = _avg([v["E_Abzug"] for v in inp.judge_values if "E_Abzug" in v])
+        penalty = _avg([v.get("Penalty", 0.0) for v in inp.judge_values])
+
+        e = 10.0 - e_abzug
+        score = (d + e - penalty) * inp.faktor + inp.offset
+        return ScoringResult(score=round(score, 3), breakdown={
+            "D_Note": round(d, 3),
+            "E_Abzug": round(e_abzug, 3),
+            "E_Note": round(e, 3),
+            "Penalty": round(penalty, 3),
+        })
+
+
 class TurnenAvg(ScoringStrategy):
     code = "TURNEN_AVG"
     label = "Turnen Schnitt aller Wertungen"
