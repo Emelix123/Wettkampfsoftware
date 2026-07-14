@@ -27,6 +27,20 @@ from views import render, flash
 router = APIRouter(prefix="/eingabe")
 
 
+def _opt_int(v) -> Optional[int]:
+    """GET-Formulare schicken fuer '— alle —' leere Strings (?riege=&snr=).
+    Die sollen wie 'kein Filter' wirken statt als 422 zu enden."""
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
 def _back_url(wid: int, gid: int, form: dict) -> str:
     """Redirect-Ziel nach save/delete/clear — Modus- und Riegen-Filter
     aus dem Formular durchschleifen, damit die Auswahl erhalten bleibt.
@@ -63,16 +77,21 @@ def _get_or_create_versuch(db: Session, wid: int, gid: int, pid: int, vnr: int) 
 
 @router.get("")
 def geraet_global(request: Request,
-                  gid: Optional[int] = Query(None),
-                  wettkampf: Optional[int] = Query(None),
-                  riege: Optional[int] = Query(None),
+                  gid: Optional[str] = Query(None),
+                  wettkampf: Optional[str] = Query(None),
+                  riege: Optional[str] = Query(None),
                   q: Optional[str] = Query(None),
-                  snr: Optional[int] = Query(None),
+                  snr: Optional[str] = Query(None),
                   db: Session = Depends(get_db),
                   user=Depends(require_user(("admin", "tisch")))):
     """Geraeteuebergreifende Eingabe: EIN Geraet, Athleten aus ALLEN
     Wettkaempfen, die dieses Geraet nutzen. Filter: Wettkampf, Riege,
     Name, Startnummer."""
+    # Leere Filterfelder ("") -> None
+    gid = _opt_int(gid)
+    wettkampf = _opt_int(wettkampf)
+    riege = _opt_int(riege)
+    snr = _opt_int(snr)
     geraete_alle = (
         db.query(Geraete)
         .join(GeraeteHasWettkampf, GeraeteHasWettkampf.Geraete_id == Geraete.idGeraete)
@@ -173,9 +192,10 @@ def overview(request: Request, wid: int, db: Session = Depends(get_db),
 @router.get("/{wid}/{gid}")
 def geraet(request: Request, wid: int, gid: int,
            mode: Optional[str] = Query(None),
-           riege: Optional[int] = Query(None),
+           riege: Optional[str] = Query(None),
            db: Session = Depends(get_db),
            user=Depends(require_user(("admin", "tisch", "kampfrichter")))):
+    riege = _opt_int(riege)  # "" (— alle —) -> None
     wk = db.get(Wettkampf, wid)
     ghw = (
         db.query(GeraeteHasWettkampf)

@@ -15,13 +15,30 @@ from views import render, flash
 router = APIRouter(prefix="/anmeldung")
 
 
+def _opt_int(v) -> Optional[int]:
+    """GET-Formulare schicken fuer '— alle —' leere Strings (?fverein=).
+    Die sollen wie 'kein Filter' wirken statt als 422 zu enden."""
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
 @router.get("/{wid}")
 def show(request: Request, wid: int,
          sort: str = Query("nr"),
-         fverein: Optional[int] = Query(None),
-         friege: Optional[int] = Query(None),
+         fverein: Optional[str] = Query(None),
+         friege: Optional[str] = Query(None),
          db: Session = Depends(get_db),
          user=Depends(require_user())):
+    # Leere Filterfelder ("") -> None (GET-Form schickt ?fverein=&friege=)
+    fverein = _opt_int(fverein)
+    friege = _opt_int(friege)
     wk = db.get(Wettkampf, wid)
     if not wk:
         flash(request, "error", "Wettkampf nicht gefunden.")
