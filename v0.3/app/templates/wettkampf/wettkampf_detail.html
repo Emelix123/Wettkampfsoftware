@@ -74,7 +74,7 @@
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/urkunden.docx?top=3">Urkunden Word Top 3</a>
           <hr class="my-1">
           <span class="text-xs text-slate-500 px-2">Wertungskarten (leer)</span>
-          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf" target="_blank"><strong>Alle Geraete</strong></a>
+          <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf" target="_blank"><strong>Laufkarten (alle Geraete, 1 Seite/Person)</strong></a>
           {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
           <a class="btn btn-ghost" href="/export/wettkampf/{{ wk.idWettkampf }}/wertungskarten.pdf?geraet_id={{ g.Geraete_id }}" target="_blank">{{ g.anzeige_name }}</a>
           {% endfor %}

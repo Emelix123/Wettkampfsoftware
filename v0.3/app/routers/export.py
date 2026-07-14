@@ -137,7 +137,8 @@ def tag_ergebnisse(tid: int, db: Session = Depends(get_db),
 
 
 # F3: Wertungskarten als PDF (leer, fuer Kampfrichter zum Ausfuellen).
-# Ohne ?geraet_id: alle Geraete in einem PDF (eine Section pro Geraet).
+# Mit ?geraet_id: eine Karte pro Athlet+Versuch fuer DIESES Geraet.
+# Ohne ?geraet_id: Laufkarten — eine Seite pro Person mit allen Geraeten drauf.
 @router.get("/wettkampf/{wid}/wertungskarten.pdf")
 def wertungskarten(wid: int, geraet_id: Optional[int] = Query(None),
                    db: Session = Depends(get_db),
@@ -165,12 +166,14 @@ def wertungskarten(wid: int, geraet_id: Optional[int] = Query(None),
         {"ghw": g, "kriterien": get_strategy(g.berechnung.Regel_Kuerzel).alle_kriterien}
         for g in geraete_zu
     ]
-    pdf = _render_pdf("pdf/wertungskarten.html",
-                      wk=wk, starter=starter, geraete_blocks=geraete_blocks)
-    if len(geraete_zu) == 1:
-        fn = f"wertungskarten-wk{wid}-g{geraete_zu[0].Geraete_id}.pdf"
+    if geraet_id:
+        pdf = _render_pdf("pdf/wertungskarten.html",
+                          wk=wk, starter=starter, geraete_blocks=geraete_blocks)
+        fn = f"wertungskarten-wk{wid}-g{geraet_id}.pdf"
     else:
-        fn = f"wertungskarten-wk{wid}-alle.pdf"
+        pdf = _render_pdf("pdf/laufkarten.html",
+                          wk=wk, starter=starter, geraete_blocks=geraete_blocks)
+        fn = f"laufkarten-wk{wid}.pdf"
     return _pdf_response(pdf, fn)
 
 
