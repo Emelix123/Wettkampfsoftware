@@ -6,7 +6,9 @@
 </div>
 <h1 class="text-2xl font-bold mb-4">Eingabe — {{ wk.Name }}</h1>
 
-<p class="text-sm text-slate-600 mb-4">Waehle ein Geraet:</p>
+<p class="text-sm text-slate-600 mb-4">Waehle ein Geraet — oder nutze die
+  <a href="/eingabe" class="text-brand-600 hover:underline">geraeteuebergreifende Eingabe</a>
+  (alle Wettkaempfe, mit Suche/Filter):</p>
 <div class="grid md:grid-cols-3 gap-3">
   {% for g in wk.geraete_zuordnung|sort(attribute='Reihenfolge') %}
   <a class="card hover:shadow-md" href="/eingabe/{{ wk.idWettkampf }}/{{ g.Geraete_id }}">

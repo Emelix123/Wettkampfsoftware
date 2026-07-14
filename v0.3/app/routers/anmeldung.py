@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Form, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -14,7 +16,11 @@ router = APIRouter(prefix="/anmeldung")
 
 
 @router.get("/{wid}")
-def show(request: Request, wid: int, db: Session = Depends(get_db),
+def show(request: Request, wid: int,
+         sort: str = Query("nr"),
+         fverein: Optional[int] = Query(None),
+         friege: Optional[int] = Query(None),
+         db: Session = Depends(get_db),
          user=Depends(require_user())):
     wk = db.get(Wettkampf, wid)
     if not wk:
@@ -27,12 +33,47 @@ def show(request: Request, wid: int, db: Session = Depends(get_db),
         .all()
     )
     angemeldet_ids = {a.Personen_id for a in angemeldete}
+
+    # Vereine der Angemeldeten (fuer den Filter)
+    vereine = sorted(
+        {a.person.verein for a in angemeldete if a.person.verein},
+        key=lambda v: v.Kuerzel or v.Name,
+    )
+
+    # Filter: Verein / Riege (friege=0 -> ohne Riege)
+    if fverein:
+        angemeldete = [a for a in angemeldete if a.person.Verein_id == fverein]
+    if friege is not None:
+        if friege == 0:
+            angemeldete = [a for a in angemeldete if a.Riege_id is None]
+        else:
+            angemeldete = [a for a in angemeldete if a.Riege_id == friege]
+
+    # Sortierung
+    if sort == "name":
+        angemeldete.sort(key=lambda a: (a.person.Nachname.lower(), a.person.Vorname.lower()))
+    elif sort == "verein":
+        angemeldete.sort(key=lambda a: (
+            (a.person.verein.Kuerzel or a.person.verein.Name).lower() if a.person.verein else "zzz",
+            a.person.Nachname.lower(),
+        ))
+    elif sort == "riege":
+        angemeldete.sort(key=lambda a: (
+            a.Riege_id is None,
+            a.riege.Bezeichnung.lower() if a.riege else "",
+            a.Startnummer if a.Startnummer is not None else 10**9,
+        ))
+    else:  # "nr" (Default)
+        angemeldete.sort(key=lambda a: (a.Startnummer is None,
+                                        a.Startnummer if a.Startnummer is not None else 0))
+
     alle_personen = (
         db.query(Personen).order_by(Personen.Nachname, Personen.Vorname).all()
     )
     verfuegbar = [p for p in alle_personen if p.idPersonen not in angemeldet_ids]
     return render(request, db, "wettkampf/anmeldung.html",
-                  wk=wk, angemeldete=angemeldete, verfuegbar=verfuegbar)
+                  wk=wk, angemeldete=angemeldete, verfuegbar=verfuegbar,
+                  vereine=vereine, sort=sort, fverein=fverein, friege=friege)
 
 
 def _next_free_startnr(db: Session, wid: int) -> int:
@@ -87,6 +128,47 @@ def add(request: Request, wid: int,
         return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
     flash(request, "success", f"Person angemeldet (Startnummer {next_nr}).")
     return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+
+
+@router.post("/{wid}/riege-bulk")
+async def riege_bulk(request: Request, wid: int,
+                     db: Session = Depends(get_db),
+                     user=Depends(require_user(("admin", "tisch")))):
+    """Weist mehreren (per Checkbox gewaehlten) Anmeldungen auf einmal eine
+    Riege zu. Leere Riege = Zuordnung entfernen."""
+    wk = db.get(Wettkampf, wid)
+    if not wk:
+        return RedirectResponse("/tage", status_code=303)
+    form = await request.form()
+    pids = [int(p) for p in form.getlist("pids") if str(p).isdigit()]
+    riege_raw = str(form.get("Riege_id") or "").strip()
+    back = str(form.get("back") or "")
+    if not back.startswith("/anmeldung"):
+        back = f"/anmeldung/{wid}"
+
+    if not pids:
+        flash(request, "error", "Keine Personen ausgewaehlt.")
+        return RedirectResponse(back, status_code=303)
+
+    riege = None
+    if riege_raw:
+        riege = db.get(Riege, int(riege_raw))
+        if not riege or riege.Wettkampf_id != wid:
+            flash(request, "error", "Riege gehoert nicht zu diesem Wettkampf.")
+            return RedirectResponse(back, status_code=303)
+
+    n = 0
+    for pid in pids:
+        a = db.get(PersonenHasWettkampf, (pid, wid))
+        if a:
+            a.Riege_id = riege.idRiege if riege else None
+            n += 1
+    db.commit()
+    if riege:
+        flash(request, "success", f"{n} Person(en) der Riege '{riege.Bezeichnung}' zugeordnet.")
+    else:
+        flash(request, "success", f"Riegen-Zuordnung bei {n} Person(en) entfernt.")
+    return RedirectResponse(back, status_code=303)
 
 
 @router.post("/{wid}/startnummern-vergeben")

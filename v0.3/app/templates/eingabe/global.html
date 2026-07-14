@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Eingabe (alle Wettkaempfe){% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-1">Eingabe — geraeteuebergreifend</h1>
+<p class="text-sm text-slate-500 mb-4">Ein Geraet, Athleten aus allen Wettkaempfen. Filter nach Wettkampf, Riege, Name oder Startnummer.</p>
+
+<form method="get" class="card mb-4 grid grid-cols-2 lg:grid-cols-6 gap-2 items-end">
+  <div class="col-span-2">
+    <label class="label">Geraet</label>
+    <select class="input" name="gid" onchange="this.form.submit()">
+      <option value="">— waehlen —</option>
+      {% for g in geraete_alle %}
+      <option value="{{ g.idGeraete }}" {% if gid == g.idGeraete %}selected{% endif %}>{{ g.Name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label">Wettkampf</label>
+    <select class="input" name="wettkampf">
+      <option value="">— alle —</option>
+      {% for gw in ghws %}
+      <option value="{{ gw.Wettkampf_id }}" {% if wettkampf_filter == gw.Wettkampf_id %}selected{% endif %}>{{ gw.wettkampf.Wettkampf_Nr }} · {{ gw.wettkampf.Name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label">Riege</label>
+    <select class="input" name="riege">
+      <option value="">— alle —</option>
+      {% for r in riegen %}
+      <option value="{{ r.idRiege }}" {% if riege_filter == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }} (WK {{ r.Wettkampf_id }})</option>
+      {% endfor %}
+      <option value="0" {% if riege_filter == 0 %}selected{% endif %}>(ohne Riege)</option>
+    </select>
+  </div>
+  <div>
+    <label class="label">Name</label>
+    <input class="input" name="q" value="{{ q }}" placeholder="Vor-/Nachname">
+  </div>
+  <div class="flex gap-2">
+    <div class="flex-1">
+      <label class="label">Startnr.</label>
+      <input class="input" type="number" name="snr" value="{{ snr if snr is not none else '' }}">
+    </div>
+    <button class="btn btn-primary">Filtern</button>
+  </div>
+</form>
+
+{% if not gid %}
+  <p class="card text-slate-400 italic text-center">Bitte oben ein Geraet waehlen.</p>
+{% elif not starter %}
+  <p class="card text-slate-400 italic text-center">Keine Athleten gefunden (Filter pruefen).</p>
+{% else %}
+  <div class="space-y-3">
+    {% for s in starter %}
+      {% set wid = s.Wettkampf_id %}
+      {% set ghw = ghw_map[wid] %}
+      {% set kriterien = kriterien_map[wid] %}
+      {% set num_judges = ghw.Erwartete_Kampfrichter %}
+      {% for vnr in range(1, ghw.Anzahl_Versuche + 1) %}
+      {% set ee = versuch_map.get((wid, s.Personen_id, vnr)) %}
+      {% set slots = wertung_map.get((wid, s.Personen_id, vnr), {}) %}
+      <form method="post" action="/eingabe/{{ wid }}/{{ ghw.Geraete_id }}/save" class="card">
+        {{ csrf_input(request) }}
+        <input type="hidden" name="pid" value="{{ s.Personen_id }}">
+        <input type="hidden" name="versuch" value="{{ vnr }}">
+        <input type="hidden" name="back" value="{{ back }}">
+        <input type="hidden" name="updated_at" value="{{ ee.Updated_At.isoformat(timespec='seconds') if ee and ee.Updated_At else '' }}">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+          <div class="font-semibold text-lg">#{{ s.Startnummer or '—' }} {{ s.person.Nachname }}, {{ s.person.Vorname }}</div>
+          {% if s.person.verein %}<span class="badge">{{ s.person.verein.Kuerzel }}</span>{% endif %}
+          <span class="badge badge-blue">{{ s.wettkampf.Wettkampf_Nr }} · {{ s.wettkampf.Name }}</span>
+          {% if s.riege %}<span class="badge">{{ s.riege.Bezeichnung }}</span>{% endif %}
+          {% if ghw.Anzahl_Versuche > 1 %}<span class="badge badge-blue">Versuch {{ vnr }}</span>{% endif %}
+          {% if ee %}
+            {% if ee.Status == 'Freigegeben' and ee.Score is not none %}
+              <span class="badge badge-green">Score: {{ ee.Score }}</span>
+            {% elif ee.Status == 'In_Bewertung' %}
+              <span class="badge badge-amber">in Bewertung</span>
+            {% endif %}
+            {% if not ee.Ist_Gueltig %}<span class="badge badge-red">Fehlversuch</span>{% endif %}
+          {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+        <table class="table">
+          <thead><tr><th>Richter</th>{% for k in kriterien %}<th>{{ k }}</th>{% endfor %}<th></th><th class="w-24">Aktion</th></tr></thead>
+          <tbody>
+            {% for slot in range(1, num_judges + 1) %}
+            <tr>
+              <td class="font-medium">R{{ slot }}</td>
+              {% for k in kriterien %}
+              <td><input class="input" name="slot{{ slot }}__{{ k }}" type="text" inputmode="decimal"
+                         value="{{ slots.get(slot, {}).get(k, '') }}"></td>
+              {% endfor %}
+              <td>
+                {% if slots.get(slot) %}
+                  <button type="submit" formaction="/eingabe/{{ wid }}/{{ ghw.Geraete_id }}/slot/delete" class="btn btn-ghost text-xs"
+                          name="slot" value="{{ slot }}"
+                          onclick="return confirm('Wertung von R{{ slot }} loeschen?')">x R{{ slot }}</button>
+                {% endif %}
+              </td>
+              {% if loop.first %}
+              <td rowspan="{{ num_judges }}" class="align-middle">
+                <label class="text-xs flex items-center gap-1"><input type="checkbox" name="ist_gueltig" value="1" {% if not ee or ee.Ist_Gueltig %}checked{% endif %}> gueltig</label>
+                <button class="btn btn-primary mt-2 w-full">speichern</button>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% if ee %}
+        <div class="text-right mt-2">
+          <button formaction="/eingabe/{{ wid }}/{{ ghw.Geraete_id }}/clear" formmethod="post" class="btn btn-ghost text-xs"
+                  onclick="return confirm('Versuch zuruecksetzen?')">Versuch zuruecksetzen</button>
+        </div>
+        {% endif %}
+      </form>
+      {% endfor %}
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

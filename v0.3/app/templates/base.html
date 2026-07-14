@@ -35,6 +35,9 @@
         <a href="/tage"          class="px-3 py-1.5 rounded hover:bg-slate-100">Wettkampftage</a>
         <a href="/personen"      class="px-3 py-1.5 rounded hover:bg-slate-100">Personen</a>
         <a href="/live"          class="px-3 py-1.5 rounded hover:bg-slate-100">Live-Ansicht</a>
+        {% if user.role in ('admin', 'tisch') %}
+        <a href="/eingabe"       class="px-3 py-1.5 rounded hover:bg-slate-100">Eingabe</a>
+        {% endif %}
         {% if user.role in ('trainer', 'admin') %}
         <a href="/melden"        class="px-3 py-1.5 rounded hover:bg-slate-100">Meldung</a>
         {% endif %}

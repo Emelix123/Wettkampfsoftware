@@ -50,11 +50,73 @@
       <span class="text-xs text-slate-500 ml-2">(z.B. nach Trainer-Meldungen)</span>
     </form>
     {% endif %}
+
+    {% set back_url = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') %}
+    <div class="flex flex-wrap items-end gap-2 mb-3">
+      <form method="get" class="flex flex-wrap items-end gap-2">
+        <div>
+          <label class="label">Sortierung</label>
+          <select class="input" name="sort" onchange="this.form.submit()">
+            <option value="nr"     {% if sort == 'nr' %}selected{% endif %}>Startnummer</option>
+            <option value="name"   {% if sort == 'name' %}selected{% endif %}>Name</option>
+            <option value="verein" {% if sort == 'verein' %}selected{% endif %}>Verein</option>
+            <option value="riege"  {% if sort == 'riege' %}selected{% endif %}>Riege</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Verein</label>
+          <select class="input" name="fverein" onchange="this.form.submit()">
+            <option value="">— alle —</option>
+            {% for v in vereine %}
+            <option value="{{ v.idVerein }}" {% if fverein == v.idVerein %}selected{% endif %}>{{ v.Kuerzel or v.Name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="label">Riege</label>
+          <select class="input" name="friege" onchange="this.form.submit()">
+            <option value="">— alle —</option>
+            {% for r in wk.riegen %}
+            <option value="{{ r.idRiege }}" {% if friege == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>
+            {% endfor %}
+            <option value="0" {% if friege == 0 %}selected{% endif %}>(ohne Riege)</option>
+          </select>
+        </div>
+        {% if fverein or friege is not none or sort != 'nr' %}
+        <a class="btn btn-ghost" href="/anmeldung/{{ wk.idWettkampf }}">zuruecksetzen</a>
+        {% endif %}
+      </form>
+
+      {% if user.role in ('admin', 'tisch') %}
+      <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/riege-bulk" id="riegenbulk"
+            class="flex items-end gap-2 ml-auto border-l border-slate-200 pl-3">
+        {{ csrf_input(request) }}
+        <input type="hidden" name="back" value="{{ back_url }}">
+        <div>
+          <label class="label">Auswahl → Riege</label>
+          <select class="input" name="Riege_id">
+            <option value="">— keine (entfernen) —</option>
+            {% for r in wk.riegen %}<option value="{{ r.idRiege }}">{{ r.Bezeichnung }}</option>{% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-primary">zuordnen</button>
+      </form>
+      {% endif %}
+    </div>
+
     <table class="table">
-      <thead><tr><th>Nr</th><th>Person</th><th>Verein</th><th>Riege</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th><th></th></tr></thead>
+      <thead><tr>
+        {% if user.role in ('admin', 'tisch') %}
+        <th class="w-8"><input type="checkbox" title="alle an-/abwaehlen"
+              onclick="document.querySelectorAll('.pid-check').forEach(c => c.checked = this.checked)"></th>
+        {% endif %}
+        <th>Nr</th><th>Person</th><th>Verein</th><th>Riege</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th><th></th></tr></thead>
       <tbody>
       {% for a in angemeldete %}
         <tr>
+          {% if user.role in ('admin', 'tisch') %}
+          <td><input type="checkbox" class="pid-check" name="pids" value="{{ a.Personen_id }}" form="riegenbulk"></td>
+          {% endif %}
           <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/update">
             {{ csrf_input(request) }}
           <td><input class="input w-16" type="number" name="Startnummer" value="{{ a.Startnummer or '' }}"></td>
@@ -91,7 +153,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="7" class="text-center text-slate-400 italic">Noch keine Anmeldungen.</td></tr>
+        <tr><td colspan="9" class="text-center text-slate-400 italic">Noch keine Anmeldungen{% if fverein or friege is not none %} (Filter aktiv){% endif %}.</td></tr>
       {% endfor %}
       </tbody>
     </table>

@@ -90,6 +90,7 @@
   <!-- Geräte -->
   <section class="card">
     <h2 class="font-semibold mb-3">Geraete &amp; Berechnung</h2>
+    <div class="overflow-x-auto">
     <table class="table">
       <thead><tr><th>#</th><th>Geraet</th><th>Label</th><th>Berechnung</th><th>Versuche</th><th>Richter</th><th>Faktor</th><th>Offset</th><th></th></tr></thead>
       <tbody>
@@ -148,6 +149,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% if user.role == 'admin' %}
     <form method="post" action="/wettkampf/{{ wk.idWettkampf }}/geraete" class="mt-4 grid grid-cols-2 lg:grid-cols-7 gap-2 items-end">
       {{ csrf_input(request) }}
