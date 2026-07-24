@@ -7,39 +7,41 @@
 <h1 class="text-2xl font-bold mb-4">Anmeldung — {{ wk.Name }}</h1>
 
 <div class="grid lg:grid-cols-3 gap-4">
-  <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/add" class="card space-y-3">
-    {{ csrf_input(request) }}
-    <h2 class="font-semibold">Person anmelden</h2>
-    <div>
-      <label class="label">Person</label>
-      <select class="input" name="Personen_id" required>
-        {% for p in verfuegbar %}
-          <option value="{{ p.idPersonen }}">{{ p.Nachname }}, {{ p.Vorname }}{% if p.verein %} ({{ p.verein.Kuerzel }}){% endif %}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="grid grid-cols-2 gap-2">
-      <div><label class="label">Startnummer</label><input class="input" type="number" name="Startnummer" placeholder="auto"></div>
-      <div>
-        <label class="label">Riege</label>
-        <select class="input" name="Riege_id">
-          <option value="">—</option>
-          {% for r in wk.riegen %}<option value="{{ r.idRiege }}">{{ r.Bezeichnung }}</option>{% endfor %}
+  <!-- Personen hinzufuegen: Filter + Mehrfachauswahl -->
+  <div class="card space-y-3">
+    <h2 class="font-semibold">Personen hinzufuegen</h2>
+    {% if verfuegbar %}
+    <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/add-bulk">
+      {{ csrf_input(request) }}
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <select id="imp-verein" class="input" onchange="filterImport()">
+          <option value="">— alle Vereine —</option>
+          {% for v in import_vereine %}<option value="{{ v.idVerein }}">{{ v.Kuerzel or v.Name }}</option>{% endfor %}
         </select>
+        <input id="imp-search" class="input" placeholder="Name suchen…" oninput="filterImport()">
       </div>
-    </div>
-    {% if wk.Typ != 'Einzel' %}
-    <div>
-      <label class="label">Mannschaft</label>
-      <select class="input" name="Mannschaft_id">
-        <option value="">—</option>
-        {% for m in wk.mannschaften %}<option value="{{ m.idMannschaft }}">{{ m.Name }}</option>{% endfor %}
-      </select>
-    </div>
+      <div class="flex items-center gap-2 mb-1 text-sm">
+        <label class="flex items-center gap-1"><input type="checkbox" id="imp-all" onclick="toggleAllImport(this)"> alle sichtbaren</label>
+        <span id="imp-count" class="text-slate-500 ml-auto"></span>
+      </div>
+      <div class="border border-slate-200 rounded max-h-80 overflow-y-auto divide-y divide-slate-100" id="imp-list">
+        {% for p in verfuegbar %}
+        <label class="imp-row flex items-center gap-2 px-2 py-1 hover:bg-slate-50 cursor-pointer"
+               data-verein="{{ p.Verein_id or '' }}"
+               data-name="{{ (p.Nachname ~ ' ' ~ p.Vorname)|lower }}">
+          <input type="checkbox" class="imp-check" name="pids" value="{{ p.idPersonen }}" onchange="updateImportCount()">
+          <span class="text-sm">{{ p.Nachname }}, {{ p.Vorname }}</span>
+          {% if p.verein %}<span class="badge ml-auto">{{ p.verein.Kuerzel }}</span>{% endif %}
+        </label>
+        {% endfor %}
+      </div>
+      <button class="btn btn-primary w-full mt-2">zum Wettkampf hinzufuegen</button>
+      <p class="text-xs text-slate-500 mt-1">Startnummern werden automatisch vergeben. Riege/Reihenfolge rechts anpassen.</p>
+    </form>
+    {% else %}
+    <p class="text-xs text-slate-500">Alle Personen sind bereits angemeldet. Lege weitere unter <a href="/personen" class="underline">Personen</a> an{% if user.role in ('admin','tisch') %} oder nutze den <a href="/personen/import" class="underline">Massen-Import</a>{% endif %}.</p>
     {% endif %}
-    <button class="btn btn-primary">Anmelden</button>
-    {% if not verfuegbar %}<p class="text-xs text-slate-500">Alle Personen sind bereits angemeldet. Lege weitere unter <a href="/personen" class="underline">Personen</a> an.</p>{% endif %}
-  </form>
+  </div>
 
   <div class="card lg:col-span-2 overflow-x-auto">
     {% set ohne_nr = angemeldete|selectattr('Startnummer', 'none')|list|length %}
@@ -51,7 +53,12 @@
     </form>
     {% endif %}
 
-    {% set back_url = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') %}
+    {# Bearbeiten-Formulare liegen AUSSERHALB der Tabelle (valides HTML);
+       die Felder in den Zeilen verweisen per form="..."-Attribut darauf. #}
+    {% for a in angemeldete %}
+    <form id="aedit-{{ a.Personen_id }}" method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/update">{{ csrf_input(request) }}</form>
+    {% endfor %}
+
     <div class="flex flex-wrap items-end gap-2 mb-3">
       <form method="get" class="flex flex-wrap items-end gap-2">
         <div>
@@ -76,7 +83,7 @@
           <label class="label">Riege</label>
           <select class="input" name="friege" onchange="this.form.submit()">
             <option value="">— alle —</option>
-            {% for r in wk.riegen %}
+            {% for r in wk.tag.riegen %}
             <option value="{{ r.idRiege }}" {% if friege == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>
             {% endfor %}
             <option value="0" {% if friege == 0 %}selected{% endif %}>(ohne Riege)</option>
@@ -86,23 +93,33 @@
         <a class="btn btn-ghost" href="/anmeldung/{{ wk.idWettkampf }}">zuruecksetzen</a>
         {% endif %}
       </form>
+    </div>
 
-      {% if user.role in ('admin', 'tisch') %}
-      <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/riege-bulk" id="riegenbulk"
-            class="flex items-end gap-2 ml-auto border-l border-slate-200 pl-3">
-        {{ csrf_input(request) }}
-        <input type="hidden" name="back" value="{{ back_url }}">
+    {% if user.role in ('admin', 'tisch') %}
+    <div class="flex flex-wrap items-end gap-3 mb-3 p-2 bg-slate-50 border border-slate-200 rounded text-sm">
+      <span class="font-medium text-slate-600">Auswahl:</span>
+      <div class="flex items-end gap-1">
         <div>
-          <label class="label">Auswahl → Riege</label>
-          <select class="input" name="Riege_id">
+          <label class="label">→ Riege</label>
+          <select class="input" id="bulk-riege">
             <option value="">— keine (entfernen) —</option>
-            {% for r in wk.riegen %}<option value="{{ r.idRiege }}">{{ r.Bezeichnung }}</option>{% endfor %}
+            {% for r in wk.tag.riegen %}<option value="{{ r.idRiege }}">{{ r.Bezeichnung }}</option>{% endfor %}
           </select>
         </div>
-        <button class="btn btn-primary">zuordnen</button>
-      </form>
-      {% endif %}
+        <button type="button" class="btn btn-ghost"
+                onclick="bulkSubmit('/anmeldung/{{ wk.idWettkampf }}/riege-bulk', {Riege_id: document.getElementById('bulk-riege').value})">zuordnen</button>
+      </div>
+      <div class="flex items-end gap-1 border-l border-slate-300 pl-3">
+        <div>
+          <label class="label">Startnummern ab</label>
+          <input class="input w-20" type="number" id="bulk-startat" value="1" min="1">
+        </div>
+        <button type="button" class="btn btn-ghost"
+                onclick="bulkSubmit('/anmeldung/{{ wk.idWettkampf }}/renumber', {start_at: document.getElementById('bulk-startat').value})"
+                title="Vergibt der Auswahl fortlaufende Startnummern in Listenreihenfolge">Reihenfolge festlegen</button>
+      </div>
     </div>
+    {% endif %}
 
     <table class="table">
       <thead><tr>
@@ -113,42 +130,50 @@
         <th>Nr</th><th>Person</th><th>Verein</th><th>Riege</th>{% if wk.Typ != 'Einzel' %}<th>Mannschaft</th>{% endif %}<th>Status</th><th></th></tr></thead>
       <tbody>
       {% for a in angemeldete %}
+        {% set f = "aedit-" ~ a.Personen_id %}
         <tr>
           {% if user.role in ('admin', 'tisch') %}
-          <td><input type="checkbox" class="pid-check" name="pids" value="{{ a.Personen_id }}" form="riegenbulk"></td>
+          <td><input type="checkbox" class="pid-check" value="{{ a.Personen_id }}"></td>
           {% endif %}
-          <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/update">
-            {{ csrf_input(request) }}
-          <td><input class="input w-16" type="number" name="Startnummer" value="{{ a.Startnummer or '' }}"></td>
+          <td>
+            <div class="flex items-center gap-1">
+              <input class="input w-16" form="{{ f }}" type="number" name="Startnummer" value="{{ a.Startnummer or '' }}">
+              {% if user.role in ('admin', 'tisch') and a.Startnummer is not none %}
+              <span class="inline-flex flex-col">
+                <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/move" class="inline">{{ csrf_input(request) }}<input type="hidden" name="Personen_id" value="{{ a.Personen_id }}"><input type="hidden" name="direction" value="up"><button class="btn btn-ghost text-xs px-1 py-0" title="nach oben">▲</button></form>
+                <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/move" class="inline">{{ csrf_input(request) }}<input type="hidden" name="Personen_id" value="{{ a.Personen_id }}"><input type="hidden" name="direction" value="down"><button class="btn btn-ghost text-xs px-1 py-0" title="nach unten">▼</button></form>
+              </span>
+              {% endif %}
+            </div>
+          </td>
           <td class="font-medium">{{ a.person.Nachname }}, {{ a.person.Vorname }}</td>
           <td>{{ a.person.verein.Kuerzel if a.person.verein else '—' }}</td>
           <td>
-            <select class="input" name="Riege_id">
+            <select class="input" form="{{ f }}" name="Riege_id">
               <option value="">—</option>
-              {% for r in wk.riegen %}<option value="{{ r.idRiege }}" {% if a.Riege_id==r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>{% endfor %}
+              {% for r in wk.tag.riegen %}<option value="{{ r.idRiege }}" {% if a.Riege_id==r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>{% endfor %}
             </select>
           </td>
           {% if wk.Typ != 'Einzel' %}
           <td>
-            <select class="input" name="Mannschaft_id">
+            <select class="input" form="{{ f }}" name="Mannschaft_id">
               <option value="">—</option>
               {% for m in wk.mannschaften %}<option value="{{ m.idMannschaft }}" {% if a.Mannschaft_id==m.idMannschaft %}selected{% endif %}>{{ m.Name }}</option>{% endfor %}
             </select>
           </td>
           {% endif %}
           <td>
-            <select class="input" name="Start_Status" onchange="this.closest('tr').querySelector('.grund-input').classList.toggle('hidden', !['Zurueckgezogen','Disqualifiziert'].includes(this.value))">
+            <select class="input" form="{{ f }}" name="Start_Status" onchange="this.closest('tr').querySelector('.grund-input').classList.toggle('hidden', !['Zurueckgezogen','Disqualifiziert'].includes(this.value))">
               {% for s in ['Gemeldet','Gestartet','Zurueckgezogen','Disqualifiziert'] %}
                 <option value="{{ s }}" {% if a.Start_Status==s %}selected{% endif %}>{{ s }}</option>
               {% endfor %}
             </select>
             <input class="input mt-1 grund-input {% if a.Start_Status not in ['Zurueckgezogen','Disqualifiziert'] %}hidden{% endif %}"
-                   type="text" name="Status_Grund" value="{{ a.Status_Grund or '' }}"
+                   form="{{ f }}" type="text" name="Status_Grund" value="{{ a.Status_Grund or '' }}"
                    placeholder="Grund (DQ / Rueckzug)">
           </td>
           <td class="text-right whitespace-nowrap">
-            <button class="btn btn-ghost">speichern</button>
-          </form>
+            <button class="btn btn-ghost" form="{{ f }}">speichern</button>
             <form method="post" action="/anmeldung/{{ wk.idWettkampf }}/{{ a.Personen_id }}/delete" class="inline" onsubmit="return confirm('Anmeldung entfernen?')">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>
           </td>
         </tr>
@@ -159,4 +184,50 @@
     </table>
   </div>
 </div>
+
+<script>
+// --- Massen-Import: Filter nach Verein + Namenssuche ---
+function filterImport(){
+  var vsel = document.getElementById('imp-verein').value;
+  var q = (document.getElementById('imp-search').value || '').trim().toLowerCase();
+  document.querySelectorAll('#imp-list .imp-row').forEach(function(row){
+    var okV = !vsel || row.dataset.verein === vsel;
+    var okQ = !q || (row.dataset.name || '').indexOf(q) !== -1;
+    var show = okV && okQ;
+    row.classList.toggle('hidden', !show);
+    if(!show){ row.querySelector('.imp-check').checked = false; }
+  });
+  var all = document.getElementById('imp-all');
+  if(all) all.checked = false;
+  updateImportCount();
+}
+function toggleAllImport(cb){
+  document.querySelectorAll('#imp-list .imp-row').forEach(function(row){
+    if(!row.classList.contains('hidden')){ row.querySelector('.imp-check').checked = cb.checked; }
+  });
+  updateImportCount();
+}
+function updateImportCount(){
+  var n = document.querySelectorAll('#imp-list .imp-check:checked').length;
+  var el = document.getElementById('imp-count');
+  if(el) el.textContent = n ? (n + ' ausgewaehlt') : '';
+}
+
+// --- Bulk-Aktionen fuer die Startliste (Riege zuordnen / Reihenfolge) ---
+function bulkSubmit(action, extra){
+  var pids = Array.prototype.slice.call(document.querySelectorAll('.pid-check:checked')).map(function(c){ return c.value; });
+  if(!pids.length){ alert('Bitte zuerst Personen in der Liste auswaehlen.'); return; }
+  var tok = document.querySelector('input[name="_csrf"]');
+  var f = document.createElement('form');
+  f.method = 'post'; f.action = action;
+  function add(n, v){ var i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); }
+  if(tok) add('_csrf', tok.value);
+  add('back', location.pathname + location.search);
+  pids.forEach(function(p){ add('pids', p); });
+  extra = extra || {};
+  Object.keys(extra).forEach(function(k){ add(k, extra[k]); });
+  document.body.appendChild(f);
+  f.submit();
+}
+</script>
 {% endblock %}

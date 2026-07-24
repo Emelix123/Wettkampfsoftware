@@ -1,5 +1,11 @@
 {% extends "pdf/_base.html" %}
 {% block title %}Ergebnisse — {{ wk.Name }}{% endblock %}
+{# Bei vielen Geraeten quer drucken + Schrift verkleinern, damit ALLE
+   Geraete-Spalten aufs Blatt passen und nicht abgeschnitten werden. #}
+{% block extra_style %}
+{% if geraete|length > 4 %}@page { size: A4 landscape; }{% endif %}
+{% if geraete|length > 5 %}table { font-size: 8pt; } th, td { padding: 3pt 4pt; }{% endif %}
+{% endblock %}
 {% block content %}
 <footer class="head">{{ wk.tag.Name }} · {{ wk.tag.Wettkampf_Datum }} · {{ wk.tag.Ort or '' }}</footer>
 <h1>Ergebnisse{% if top %} (Top {{ top }}){% endif %}</h1>

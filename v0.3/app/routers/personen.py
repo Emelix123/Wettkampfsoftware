@@ -1,6 +1,5 @@
 import csv
 import io
-from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
@@ -10,6 +9,7 @@ from sqlalchemy.orm import Session
 from auth import require_user
 from database import get_db
 from models import Personen, Verein
+from util import parse_birthdate
 from views import render, flash, safe_delete
 
 router = APIRouter(prefix="/personen")
@@ -53,9 +53,14 @@ def update_person(request: Request, pid: int,
                   user=Depends(require_user(("admin", "tisch")))):
     obj = db.get(Personen, pid)
     if obj:
+        try:
+            geb = parse_birthdate(Geburtsdatum)
+        except ValueError as e:
+            flash(request, "error", str(e))
+            return RedirectResponse("/personen", status_code=303)
         obj.Vorname = Vorname.strip(); obj.Nachname = Nachname.strip()
-        obj.Geburtsdatum = date.fromisoformat(Geburtsdatum) if Geburtsdatum else None
-        obj.Verein_id = int(Verein_id) if Verein_id else None
+        obj.Geburtsdatum = geb
+        obj.Verein_id = int(Verein_id) if Verein_id.strip() else None
         obj.Geschlecht = Geschlecht or None
         db.commit()
         flash(request, "success", f"Person '{obj.Vorname} {obj.Nachname}' aktualisiert.")
@@ -70,10 +75,15 @@ def create_person(request: Request,
                   Geschlecht: str = Form(""),
                   db: Session = Depends(get_db),
                   user=Depends(require_user(("admin", "tisch")))):
+    try:
+        geb = parse_birthdate(Geburtsdatum)
+    except ValueError as e:
+        flash(request, "error", str(e))
+        return RedirectResponse("/personen", status_code=303)
     db.add(Personen(
         Vorname=Vorname.strip(), Nachname=Nachname.strip(),
-        Geburtsdatum=date.fromisoformat(Geburtsdatum) if Geburtsdatum else None,
-        Verein_id=int(Verein_id) if Verein_id else None,
+        Geburtsdatum=geb,
+        Verein_id=int(Verein_id) if Verein_id.strip() else None,
         Geschlecht=Geschlecht or None,
     ))
     db.commit()
@@ -129,14 +139,9 @@ def _parse_csv(raw: bytes) -> tuple[list[dict], list[str]]:
         gd_raw = row.get("Geburtsdatum", "")
         gd = None
         if gd_raw:
-            for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
-                try:
-                    from datetime import datetime
-                    gd = datetime.strptime(gd_raw, fmt).date()
-                    break
-                except ValueError:
-                    continue
-            if gd is None:
+            try:
+                gd = parse_birthdate(gd_raw)
+            except ValueError:
                 errors.append(f"Zeile {i}: Geburtsdatum '{gd_raw}' nicht erkannt — leer gelassen.")
         gs = (row.get("Geschlecht", "") or "").lower()
         if gs and gs not in ("m", "w", "d"):

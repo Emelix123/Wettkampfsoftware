@@ -48,6 +48,11 @@ class WettkampfTag(Base):
     wettkaempfe: Mapped[List["Wettkampf"]] = relationship(
         back_populates="tag", cascade="all, delete-orphan"
     )
+    # Riegen gelten seit v0.6 fuer den ganzen Wettkampftag (wettkampfuebergreifend).
+    riegen: Mapped[List["Riege"]] = relationship(
+        back_populates="tag", cascade="all, delete-orphan",
+        order_by="Riege.Start_Zeit, Riege.Bezeichnung",
+    )
 
 
 class Wettkampf(Base):
@@ -71,7 +76,6 @@ class Wettkampf(Base):
     geraete_zuordnung: Mapped[List["GeraeteHasWettkampf"]] = relationship(
         back_populates="wettkampf", cascade="all, delete-orphan"
     )
-    riegen: Mapped[List["Riege"]] = relationship(back_populates="wettkampf", cascade="all, delete-orphan")
     mannschaften: Mapped[List["Mannschaft"]] = relationship(back_populates="wettkampf", cascade="all, delete-orphan")
     anmeldungen: Mapped[List["PersonenHasWettkampf"]] = relationship(back_populates="wettkampf", cascade="all, delete-orphan")
 
@@ -81,11 +85,15 @@ class Wettkampf(Base):
 class Riege(Base):
     __tablename__ = "Riege"
     idRiege: Mapped[int] = mapped_column(primary_key=True)
-    Wettkampf_id: Mapped[int] = mapped_column(ForeignKey("Wettkampf.idWettkampf"))
+    # Seit v0.6 haengt eine Riege am Wettkampftag (wettkampfuebergreifend).
+    # Wettkampf_id bleibt (nullable) nur noch aus Kompatibilitaetsgruenden.
+    Wettkampf_Tag_id: Mapped[Optional[int]] = mapped_column(ForeignKey("Wettkampf_Tag.idWettkampf_Tag"))
+    Wettkampf_id: Mapped[Optional[int]] = mapped_column(ForeignKey("Wettkampf.idWettkampf"))
     Bezeichnung: Mapped[str] = mapped_column(String(60))
     Start_Zeit: Mapped[Optional[time]]
 
-    wettkampf: Mapped[Wettkampf] = relationship(back_populates="riegen")
+    tag: Mapped[Optional[WettkampfTag]] = relationship(back_populates="riegen")
+    wettkampf: Mapped[Optional[Wettkampf]] = relationship()
 
 
 class Mannschaft(Base):

@@ -9,11 +9,12 @@
     </tr>
   </thead>
   <tbody>
-  {% for r in wk.riegen|sort(attribute='Start_Zeit') %}
-    {% set rdata = fortschritt.get(r.idRiege, {}) %}
+  {# Riegen gelten wettkampfuebergreifend — hier nur die mit Mitgliedern in
+     diesem Wettkampf (kommen fertig sortiert aus riegen_fortschritt). #}
+  {% for rid, rdata in fortschritt.items() %}
     <tr>
-      <td class="font-medium">{{ r.Bezeichnung }}</td>
-      <td>{{ r.Start_Zeit or '—' }}</td>
+      <td class="font-medium">{{ rdata.get('bezeichnung', '') }}</td>
+      <td>{{ rdata.get('start_zeit') or '—' }}</td>
       <td class="text-right">{{ rdata.get('mitglieder', 0) }}</td>
       {% for g in sorted_geraete %}
       {% set done = rdata.get('pro_geraet', {}).get(g.Geraete_id, 0) %}
