@@ -8,6 +8,10 @@
     <div class="text-slate-500">{{ tag.Wettkampf_Datum }} · {{ tag.Ort or '—' }} · {{ tag.Veranstalter or '—' }}</div>
   </div>
   <a class="btn btn-ghost" href="/live/tag/{{ tag.idWettkampf_Tag }}/riegen">📋 Riegen-Uebersicht</a>
+  <form method="get" action="/live/suche" class="flex gap-1 items-center">
+    <input class="input" name="q" placeholder="🔎 Person suchen…">
+    <button class="btn btn-ghost">suchen</button>
+  </form>
 </div>
 <div class="grid md:grid-cols-2 gap-3">
   {% for w in tag.wettkaempfe %}

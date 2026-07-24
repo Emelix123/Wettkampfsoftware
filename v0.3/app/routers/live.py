@@ -26,6 +26,36 @@ def live_index(request: Request, db: Session = Depends(get_db)):
     return render(request, db, "live/index.html", tage=tage)
 
 
+@router.get("/suche")
+def suche(request: Request, q: str = "", db: Session = Depends(get_db)):
+    """Wettkampfuebergreifende Personensuche: findet eine Person und zeigt,
+    in welchen Wettkaempfen sie gemeldet ist — ohne dass man den Wettkampf
+    vorher kennen muss."""
+    from sqlalchemy import or_
+    from models import Personen, PersonenHasWettkampf
+    q = (q or "").strip()
+    ergebnisse = []
+    if len(q) >= 2:
+        like = f"%{q}%"
+        personen = (
+            db.query(Personen)
+            .filter(or_(Personen.Vorname.ilike(like), Personen.Nachname.ilike(like)))
+            .order_by(Personen.Nachname, Personen.Vorname)
+            .limit(100).all()
+        )
+        for p in personen:
+            teilnahmen = (
+                db.query(PersonenHasWettkampf)
+                .filter_by(Personen_id=p.idPersonen)
+                .join(Wettkampf, Wettkampf.idWettkampf == PersonenHasWettkampf.Wettkampf_id)
+                .join(WettkampfTag, WettkampfTag.idWettkampf_Tag == Wettkampf.Wettkampf_Tag_id)
+                .order_by(WettkampfTag.Wettkampf_Datum.desc(), Wettkampf.Wettkampf_Nr)
+                .all()
+            )
+            ergebnisse.append({"person": p, "teilnahmen": teilnahmen})
+    return render(request, db, "live/suche.html", q=q, ergebnisse=ergebnisse)
+
+
 @router.get("/tag/{tid}")
 def tag(request: Request, tid: int, db: Session = Depends(get_db)):
     tag = db.get(WettkampfTag, tid)

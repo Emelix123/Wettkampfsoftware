@@ -10,7 +10,7 @@ Modi:
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from auth import require_user
@@ -39,6 +39,23 @@ def _opt_int(v) -> Optional[int]:
         return int(s)
     except ValueError:
         return None
+
+
+def _is_ajax(request: Request) -> bool:
+    """Auto-Save aus der Eingabemaske schickt X-Requested-With: fetch und
+    erwartet JSON statt eines Redirects (kein Seiten-Reload/-Sprung)."""
+    return request.headers.get("X-Requested-With", "").lower() == "fetch"
+
+
+def _versuch_json(ee: EinzelErgebnis, warn: str = "") -> JSONResponse:
+    return JSONResponse({
+        "ok": True,
+        "score": float(ee.Score) if ee.Score is not None else None,
+        "status": ee.Status,
+        "ist_gueltig": bool(ee.Ist_Gueltig),
+        "updated_at": ee.Updated_At.isoformat(timespec="seconds") if ee.Updated_At else "",
+        "warn": warn,
+    })
 
 
 def _back_url(wid: int, gid: int, form: dict) -> str:
@@ -123,10 +140,17 @@ def geraet_global(request: Request,
         if wettkampf:
             wids = [w for w in wids if w == wettkampf]
 
+        # Riegen gelten wettkampfuebergreifend (am Wettkampftag). Fuer die
+        # gewaehlten Wettkaempfe alle Riegen ihrer Wettkampftage anbieten —
+        # so kann man eine Riege ueber mehrere Wettkaempfe hinweg eingeben.
+        tag_ids = [
+            t for (t,) in db.query(Wettkampf.Wettkampf_Tag_id)
+            .filter(Wettkampf.idWettkampf.in_(wids)).distinct().all()
+        ] if wids else []
         riegen = (
-            db.query(Riege).filter(Riege.Wettkampf_id.in_(wids))
-            .order_by(Riege.Wettkampf_id, Riege.Bezeichnung).all()
-        ) if wids else []
+            db.query(Riege).filter(Riege.Wettkampf_Tag_id.in_(tag_ids))
+            .order_by(Riege.Start_Zeit, Riege.Bezeichnung).all()
+        ) if tag_ids else []
 
         if wids:
             starter_q = (
@@ -263,6 +287,8 @@ async def save(request: Request, wid: int, gid: int,
         .filter_by(Wettkampf_id=wid, Geraete_id=gid).first()
     )
     if not wk or not ghw:
+        if _is_ajax(request):
+            return JSONResponse({"ok": False, "error": "Wettkampf/Geraet nicht gefunden."}, status_code=404)
         return RedirectResponse(f"/eingabe/{wid}", status_code=303)
 
     form = dict(await request.form())
@@ -270,6 +296,8 @@ async def save(request: Request, wid: int, gid: int,
         pid = int(form.get("pid", "0"))
         versuch = int(form.get("versuch", "1"))
     except ValueError:
+        if _is_ajax(request):
+            return JSONResponse({"ok": False, "error": "Ungueltige Form-Daten."}, status_code=400)
         flash(request, "error", "Ungueltige Form-Daten.")
         return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
@@ -286,10 +314,12 @@ async def save(request: Request, wid: int, gid: int,
     if existing_ee and seen_updated_at and existing_ee.Updated_At:
         current_iso = existing_ee.Updated_At.isoformat(timespec="seconds")
         if current_iso != seen_updated_at:
-            flash(request, "error",
-                  f"Versuch wurde inzwischen von jemand anderem geaendert "
-                  f"(jetzt: {current_iso}, dein Stand: {seen_updated_at}). "
-                  f"Bitte Seite neu laden, dann nochmal speichern.")
+            msg = (f"Versuch wurde inzwischen anderweitig geaendert "
+                   f"(jetzt: {current_iso}, dein Stand: {seen_updated_at}). "
+                   f"Bitte Seite neu laden, dann nochmal speichern.")
+            if _is_ajax(request):
+                return JSONResponse({"ok": False, "error": msg}, status_code=409)
+            flash(request, "error", msg)
             return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 
     ee = _get_or_create_versuch(db, wid, gid, pid, versuch)
@@ -317,10 +347,11 @@ async def save(request: Request, wid: int, gid: int,
             bad_inputs.append(f"R{slot}/{krit}='{s_value}'")
             continue
         slot_data.setdefault(slot, {})[krit] = wert
+    warn = ""
     if bad_inputs:
-        flash(request, "error",
-              "Ungueltige Werte (nicht numerisch) wurden ignoriert: "
-              + ", ".join(bad_inputs))
+        warn = "Ungueltige Werte (nicht numerisch) wurden ignoriert: " + ", ".join(bad_inputs)
+        if not _is_ajax(request):
+            flash(request, "error", warn)
 
     # Single-Mode (kampfrichter): nur die EIGENE Wertung speichern.
     # Slot-Logik:
@@ -329,6 +360,9 @@ async def save(request: Request, wid: int, gid: int,
     if user.role == "kampfrichter":
         eingabe_slot_keys = list(slot_data.keys())
         if not eingabe_slot_keys:
+            if _is_ajax(request):
+                db.refresh(ee)
+                return _versuch_json(ee, warn)
             return RedirectResponse(_back_url(wid, gid, form), status_code=303)
         # Ignoriere alle Slots ausser dem ersten (Single-Mode-Form hat eh nur slot1)
         eingabe_kv = slot_data[eingabe_slot_keys[0]]
@@ -383,6 +417,9 @@ async def save(request: Request, wid: int, gid: int,
     # Live-Subscriber benachrichtigen — Rangliste in allen offenen Tabs
     # aktualisiert sich sofort via WebSocket-Trigger.
     await CHANNEL.publish(wid)
+    if _is_ajax(request):
+        db.refresh(ee)
+        return _versuch_json(ee, warn)
     flash(request, "success", f"Versuch {versuch} fuer Startnummer/Person #{pid} gespeichert.")
     return RedirectResponse(_back_url(wid, gid, form), status_code=303)
 

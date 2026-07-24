@@ -28,7 +28,7 @@
     <select class="input" name="riege">
       <option value="">— alle —</option>
       {% for r in riegen %}
-      <option value="{{ r.idRiege }}" {% if riege_filter == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }} (WK {{ r.Wettkampf_id }})</option>
+      <option value="{{ r.idRiege }}" {% if riege_filter == r.idRiege %}selected{% endif %}>{{ r.Bezeichnung }}</option>
       {% endfor %}
       <option value="0" {% if riege_filter == 0 %}selected{% endif %}>(ohne Riege)</option>
     </select>
@@ -60,7 +60,7 @@
       {% for vnr in range(1, ghw.Anzahl_Versuche + 1) %}
       {% set ee = versuch_map.get((wid, s.Personen_id, vnr)) %}
       {% set slots = wertung_map.get((wid, s.Personen_id, vnr), {}) %}
-      <form method="post" action="/eingabe/{{ wid }}/{{ ghw.Geraete_id }}/save" class="card">
+      <form method="post" action="/eingabe/{{ wid }}/{{ ghw.Geraete_id }}/save" class="card" data-autosave>
         {{ csrf_input(request) }}
         <input type="hidden" name="pid" value="{{ s.Personen_id }}">
         <input type="hidden" name="versuch" value="{{ vnr }}">
@@ -72,14 +72,7 @@
           <span class="badge badge-blue">{{ s.wettkampf.Wettkampf_Nr }} · {{ s.wettkampf.Name }}</span>
           {% if s.riege %}<span class="badge">{{ s.riege.Bezeichnung }}</span>{% endif %}
           {% if ghw.Anzahl_Versuche > 1 %}<span class="badge badge-blue">Versuch {{ vnr }}</span>{% endif %}
-          {% if ee %}
-            {% if ee.Status == 'Freigegeben' and ee.Score is not none %}
-              <span class="badge badge-green">Score: {{ ee.Score }}</span>
-            {% elif ee.Status == 'In_Bewertung' %}
-              <span class="badge badge-amber">in Bewertung</span>
-            {% endif %}
-            {% if not ee.Ist_Gueltig %}<span class="badge badge-red">Fehlversuch</span>{% endif %}
-          {% endif %}
+          <span class="score-badge {% if ee and not ee.Ist_Gueltig %}badge badge-red{% elif ee and ee.Status == 'Freigegeben' and ee.Score is not none %}badge badge-green{% elif ee and ee.Status == 'In_Bewertung' %}badge badge-amber{% endif %}">{% if ee and not ee.Ist_Gueltig %}Fehlversuch{% elif ee and ee.Status == 'Freigegeben' and ee.Score is not none %}Score: {{ ee.Score }}{% elif ee and ee.Status == 'In_Bewertung' %}in Bewertung{% endif %}</span>
         </div>
         <div class="overflow-x-auto">
         <table class="table">
@@ -89,7 +82,7 @@
             <tr>
               <td class="font-medium">R{{ slot }}</td>
               {% for k in kriterien %}
-              <td><input class="input" name="slot{{ slot }}__{{ k }}" type="text" inputmode="decimal"
+              <td><input class="input score-input" name="slot{{ slot }}__{{ k }}" type="text" inputmode="decimal"
                          value="{{ slots.get(slot, {}).get(k, '') }}"></td>
               {% endfor %}
               <td>
@@ -120,5 +113,7 @@
       {% endfor %}
     {% endfor %}
   </div>
+  <p class="text-xs text-slate-500 mt-4">💾 Wertungen werden beim Tippen automatisch gespeichert — kein Enter noetig, die Seite bleibt stehen.</p>
+  <script src="/static/js/autosave.js"></script>
 {% endif %}
 {% endblock %}

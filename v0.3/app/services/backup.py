@@ -41,6 +41,12 @@ def snapshot_tag(db: Session, tag_id: int) -> dict:
             "ort": tag.Ort,
             "veranstalter": tag.Veranstalter,
         },
+        # Riegen gelten seit v0.6 wettkampfuebergreifend (am Wettkampftag).
+        "riegen": [
+            {"id": r.idRiege, "bezeichnung": r.Bezeichnung,
+             "start_zeit": str(r.Start_Zeit) if r.Start_Zeit else None}
+            for r in tag.riegen
+        ],
         "wettkaempfe": [],
     }
     for w in tag.wettkaempfe:
@@ -49,7 +55,7 @@ def snapshot_tag(db: Session, tag_id: int) -> dict:
             "altersklasse": w.altersklasse.Kuerzel if w.altersklasse else None,
             "status": w.Status, "typ": w.Typ,
             "mannschaft_groesse": w.Mannschaft_Groesse,
-            "geraete": [], "riegen": [], "mannschaften": [],
+            "geraete": [], "mannschaften": [],
             "anmeldungen": [], "ergebnisse": [],
         }
         for g in w.geraete_zuordnung:
@@ -63,11 +69,6 @@ def snapshot_tag(db: Session, tag_id: int) -> dict:
                 "erwartete_kampfrichter": g.Erwartete_Kampfrichter,
                 "score_faktor": float(g.Score_Faktor),
                 "score_offset": float(g.Score_Offset),
-            })
-        for r in w.riegen:
-            wk_block["riegen"].append({
-                "id": r.idRiege, "bezeichnung": r.Bezeichnung,
-                "start_zeit": str(r.Start_Zeit) if r.Start_Zeit else None,
             })
         for m in w.mannschaften:
             wk_block["mannschaften"].append({

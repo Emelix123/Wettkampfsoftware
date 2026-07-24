@@ -47,6 +47,125 @@ def _constraint_exists(conn, table: str, name: str) -> bool:
     ).first())
 
 
+def _index_exists(conn, table: str, name: str) -> bool:
+    return bool(conn.execute(
+        text(
+            "SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS "
+            "WHERE TABLE_SCHEMA = DATABASE() "
+            "  AND TABLE_NAME = :t AND INDEX_NAME = :n"
+        ),
+        {"t": table, "n": name},
+    ).first())
+
+
+def _fk_exists(conn, table: str, name: str) -> bool:
+    return bool(conn.execute(
+        text(
+            "SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS "
+            "WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = :t "
+            "  AND CONSTRAINT_NAME = :n AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+        ),
+        {"t": table, "n": name},
+    ).first())
+
+
+def _convert_charset_utf8mb4(conn) -> list[str]:
+    """Stellt Datenbank + alle Tabellen auf utf8mb4 um. Behebt Umlaut-'?'
+    bei aelteren Volumes, die noch latin1/utf8mb3 sind. Idempotent: schon
+    korrekte Tabellen werden uebersprungen (kein teurer Rebuild bei jedem Start)."""
+    applied: list[str] = []
+    dbname = conn.execute(text("SELECT DATABASE()")).scalar()
+    # DB-Default anheben (betrifft neu angelegte Tabellen/Spalten)
+    conn.execute(text(
+        f"ALTER DATABASE `{dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+    ))
+    rows = conn.execute(text(
+        "SELECT TABLE_NAME, TABLE_COLLATION FROM INFORMATION_SCHEMA.TABLES "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'"
+    )).mappings().all()
+    for r in rows:
+        coll = r["TABLE_COLLATION"] or ""
+        if not coll.startswith("utf8mb4"):
+            conn.execute(text(
+                f"ALTER TABLE `{r['TABLE_NAME']}` "
+                f"CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            ))
+            applied.append(f"charset:{r['TABLE_NAME']}")
+    return applied
+
+
+def _migrate_riegen_to_tag(conn) -> list[str]:
+    """v0.6: Riegen gelten wettkampfuebergreifend (am Wettkampftag).
+    Fuegt Wettkampf_Tag_id hinzu, backfillt aus dem Wettkampf, fuehrt
+    gleichnamige Riegen desselben Tags zusammen und haengt die FK/Unique um.
+    Alles idempotent."""
+    if not _table_exists(conn, "Riege"):
+        return []
+    applied: list[str] = []
+    if not _column_exists(conn, "Riege", "Wettkampf_Tag_id"):
+        conn.execute(text(
+            "ALTER TABLE `Riege` ADD COLUMN `Wettkampf_Tag_id` INT NULL AFTER `idRiege`"
+        ))
+        applied.append("Riege.Wettkampf_Tag_id")
+    # Backfill: Tag aus dem zugeordneten Wettkampf ziehen
+    conn.execute(text(
+        "UPDATE `Riege` r JOIN `Wettkampf` w ON w.idWettkampf = r.Wettkampf_id "
+        "SET r.Wettkampf_Tag_id = w.Wettkampf_Tag_id "
+        "WHERE r.Wettkampf_Tag_id IS NULL AND r.Wettkampf_id IS NOT NULL"
+    ))
+    # Alte FK/Unique auf Wettkampf entfernen, Wettkampf_id nullbar machen,
+    # FK mit ON DELETE SET NULL neu setzen (Riege ueberlebt Wettkampf-Loeschung).
+    # Nur einmal noetig — laeuft nur, solange die Spalte noch NOT NULL ist.
+    nullable = conn.execute(text(
+        "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Riege' "
+        "  AND COLUMN_NAME = 'Wettkampf_id'"
+    )).scalar()
+    if nullable == "NO":
+        if _fk_exists(conn, "Riege", "fk_R_Wk"):
+            conn.execute(text("ALTER TABLE `Riege` DROP FOREIGN KEY `fk_R_Wk`"))
+        if _index_exists(conn, "Riege", "UQ_Riege_Wk"):
+            conn.execute(text("ALTER TABLE `Riege` DROP INDEX `UQ_Riege_Wk`"))
+        conn.execute(text("ALTER TABLE `Riege` MODIFY `Wettkampf_id` INT NULL"))
+        if not _fk_exists(conn, "Riege", "fk_R_Wk"):
+            conn.execute(text(
+                "ALTER TABLE `Riege` ADD CONSTRAINT `fk_R_Wk` "
+                "FOREIGN KEY (`Wettkampf_id`) REFERENCES `Wettkampf`(`idWettkampf`) "
+                "ON DELETE SET NULL ON UPDATE CASCADE"
+            ))
+        applied.append("Riege.Wettkampf_id->NULL")
+    if not _fk_exists(conn, "Riege", "fk_R_Tag"):
+        conn.execute(text(
+            "ALTER TABLE `Riege` ADD CONSTRAINT `fk_R_Tag` "
+            "FOREIGN KEY (`Wettkampf_Tag_id`) REFERENCES `Wettkampf_Tag`(`idWettkampf_Tag`) "
+            "ON DELETE CASCADE ON UPDATE CASCADE"
+        ))
+    # Gleichnamige Riegen desselben Tags zusammenfuehren (Anmeldungen umbiegen)
+    dupes = conn.execute(text(
+        "SELECT Wettkampf_Tag_id, Bezeichnung, MIN(idRiege) AS keep_id "
+        "FROM `Riege` WHERE Wettkampf_Tag_id IS NOT NULL "
+        "GROUP BY Wettkampf_Tag_id, Bezeichnung HAVING COUNT(*) > 1"
+    )).mappings().all()
+    for d in dupes:
+        others = conn.execute(text(
+            "SELECT idRiege FROM `Riege` WHERE Wettkampf_Tag_id = :tag "
+            "AND Bezeichnung = :bez AND idRiege <> :keep"
+        ), {"tag": d["Wettkampf_Tag_id"], "bez": d["Bezeichnung"], "keep": d["keep_id"]}).scalars().all()
+        for oid in others:
+            conn.execute(text(
+                "UPDATE `Personen_has_Wettkampf` SET Riege_id = :keep WHERE Riege_id = :oid"
+            ), {"keep": d["keep_id"], "oid": oid})
+            conn.execute(text("DELETE FROM `Riege` WHERE idRiege = :oid"), {"oid": oid})
+        applied.append(f"Riege-Merge:{d['Bezeichnung']}")
+    if not _index_exists(conn, "Riege", "UQ_Riege_Tag"):
+        conn.execute(text(
+            "ALTER TABLE `Riege` ADD UNIQUE KEY `UQ_Riege_Tag` "
+            "(`Bezeichnung`, `Wettkampf_Tag_id`)"
+        ))
+        applied.append("Riege.UQ_Riege_Tag")
+    return applied
+
+
 def _add_column(conn, table: str, column: str, ddl_rest: str) -> bool:
     """Legt die Spalte an, wenn sie fehlt. Returns True wenn angelegt."""
     if _column_exists(conn, table, column):
@@ -136,8 +255,14 @@ def run_startup_migrations() -> None:
             ))
             applied.append("fk_user_V")
 
+        # v0.6: Riegen wettkampfuebergreifend (am Wettkampftag)
+        applied += _migrate_riegen_to_tag(conn)
+
         for stmt in _SEED:
             conn.execute(text(stmt))
+
+        # Umlaut-Fix ganz am Ende, damit auch neu angelegte Spalten utf8mb4 sind.
+        applied += _convert_charset_utf8mb4(conn)
 
         if applied:
             print(f"[migrations] Schema aktualisiert: {', '.join(applied)}")

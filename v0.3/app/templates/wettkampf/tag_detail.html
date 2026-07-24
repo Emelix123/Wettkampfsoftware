@@ -100,8 +100,14 @@
             {% set color = 'badge-blue' if w.Status=='Aktiv' else ('badge-green' if w.Status=='Abgeschlossen' else 'badge') %}
             <span class="badge {{ color }}">{{ w.Status }}</span>
           </td>
-          <td class="text-right">
+          <td class="text-right whitespace-nowrap">
             <a class="btn btn-ghost" href="/wettkampf/{{ w.idWettkampf }}">oeffnen</a>
+            {% if user.role == 'admin' %}
+            <form method="post" action="/wettkampf/{{ w.idWettkampf }}/delete" class="inline"
+                  onsubmit="return confirm('Wettkampf „{{ w.Wettkampf_Nr }} · {{ w.Name }}“ wirklich loeschen? Alle Anmeldungen, Geraete-Zuordnungen und Ergebnisse dieses Wettkampfs werden mitgeloescht.')">
+              {{ csrf_input(request) }}<button class="btn btn-danger">loeschen</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}

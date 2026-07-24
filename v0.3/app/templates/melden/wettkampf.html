@@ -77,7 +77,7 @@
         {{ csrf_input(request) }}
         <div><label class="label">Vorname</label><input class="input" name="Vorname" required></div>
         <div><label class="label">Nachname</label><input class="input" name="Nachname" required></div>
-        <div><label class="label">Geburtsdatum</label><input class="input" type="date" name="Geburtsdatum"></div>
+        <div><label class="label">Geburtsdatum <span class="text-slate-400 text-xs font-normal">(oder nur Jahrgang)</span></label><input class="input" name="Geburtsdatum" placeholder="JJJJ-MM-TT oder JJJJ"></div>
         <div>
           <label class="label">Geschlecht</label>
           <select class="input" name="Geschlecht">

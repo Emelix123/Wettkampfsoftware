@@ -9,7 +9,7 @@ Veranstalter unter /anmeldung — Trainer-Meldungen kommen ohne Startnummer an.
 Admins koennen das Portal ebenfalls nutzen (Vereins-Auswahl via eigenes
 Verein_id-Feld am User).
 """
-from datetime import date, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -23,6 +23,7 @@ from models import (
     WettkampfTag,
 )
 from services import audit
+from util import parse_birthdate
 from views import render, flash
 
 router = APIRouter(prefix="/melden")
@@ -163,13 +164,11 @@ def neu(request: Request, wid: int,
     if not vorname or not nachname:
         flash(request, "error", "Vor- und Nachname sind Pflicht.")
         return RedirectResponse(f"/melden/{wid}", status_code=303)
-    geb = None
-    if Geburtsdatum.strip():
-        try:
-            geb = date.fromisoformat(Geburtsdatum.strip())
-        except ValueError:
-            flash(request, "error", "Geburtsdatum nicht lesbar (Format: JJJJ-MM-TT).")
-            return RedirectResponse(f"/melden/{wid}", status_code=303)
+    try:
+        geb = parse_birthdate(Geburtsdatum)
+    except ValueError:
+        flash(request, "error", "Geburtsdatum nicht lesbar (Format: JJJJ-MM-TT oder nur JJJJ).")
+        return RedirectResponse(f"/melden/{wid}", status_code=303)
     # Doppelte vermeiden: gleiche Person im gleichen Verein
     existing = (
         db.query(Personen)

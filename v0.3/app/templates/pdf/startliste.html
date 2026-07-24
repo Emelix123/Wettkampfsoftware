@@ -7,7 +7,7 @@
 
 {% set riegen_used = starter | map(attribute='Riege_id') | unique | list %}
 {% if riegen_used | length > 1 or (riegen_used and riegen_used[0]) %}
-  {% for riege in wk.riegen %}
+  {% for riege in wk.tag.riegen %}
     {% set in_riege = starter | selectattr('Riege_id','equalto', riege.idRiege) | list %}
     {% if in_riege %}
       <h2>{{ riege.Bezeichnung }}{% if riege.Start_Zeit %} · {{ riege.Start_Zeit }}{% endif %}</h2>

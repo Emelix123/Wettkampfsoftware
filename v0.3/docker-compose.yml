@@ -8,6 +8,12 @@ services:
     container_name: wk_db
     restart: unless-stopped
     networks: [wk_net]
+    # Server- und Client-Charset fest auf utf8mb4 — sonst werden Umlaute
+    # (aeoeue, ss) beim Import der Init-Skripte bzw. bei der Eingabe zu "?".
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --init-connect=SET NAMES utf8mb4
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
       MYSQL_DATABASE:      ${DB_NAME:-wettkampfDB}

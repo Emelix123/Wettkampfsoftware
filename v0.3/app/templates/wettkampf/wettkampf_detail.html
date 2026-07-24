@@ -169,17 +169,18 @@
 
   <!-- Riegen -->
   <section class="card">
-    <h2 class="font-semibold mb-3">Riegen (Startgruppen)</h2>
+    <h2 class="font-semibold mb-1">Riegen (Startgruppen)</h2>
+    <p class="text-xs text-slate-500 mb-3">Riegen gelten fuer den ganzen Wettkampftag <strong>{{ wk.tag.Name }}</strong> — sie stehen in allen Wettkaempfen dieses Tages zur Verfuegung. „Mitglieder“ zaehlt die in <em>diesem</em> Wettkampf zugeordneten Personen.</p>
     <table class="table">
       <thead><tr><th>Bezeichnung</th><th>Startzeit</th><th>Mitglieder</th><th></th></tr></thead>
       <tbody>
-        {% for r in wk.riegen %}
+        {% for r in wk.tag.riegen %}
         <tr>
           <td class="font-medium">{{ r.Bezeichnung }}</td>
           <td>{{ r.Start_Zeit or '—' }}</td>
           <td>{{ wk.anmeldungen|selectattr('Riege_id','equalto', r.idRiege)|list|length }}</td>
           <td class="text-right">
-            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>{% endif %}
+            {% if user.role == 'admin' %}<form method="post" action="/wettkampf/{{ wk.idWettkampf }}/riegen/{{ r.idRiege }}/delete" onsubmit="return confirm('Riege „{{ r.Bezeichnung }}“ fuer den ganzen Wettkampftag loeschen?')">{{ csrf_input(request) }}<button class="btn btn-danger">x</button></form>{% endif %}
           </td>
         </tr>
         {% else %}<tr><td colspan="4" class="text-slate-400 italic text-center">Noch keine Riegen.</td></tr>{% endfor %}

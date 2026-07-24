@@ -88,9 +88,15 @@ def show(request: Request, wid: int,
         db.query(Personen).order_by(Personen.Nachname, Personen.Vorname).all()
     )
     verfuegbar = [p for p in alle_personen if p.idPersonen not in angemeldet_ids]
+    # Vereine der noch verfuegbaren Personen — fuer den Filter des Massen-Imports
+    import_vereine = sorted(
+        {p.verein for p in verfuegbar if p.verein},
+        key=lambda v: (v.Kuerzel or v.Name or "").lower(),
+    )
     return render(request, db, "wettkampf/anmeldung.html",
                   wk=wk, angemeldete=angemeldete, verfuegbar=verfuegbar,
-                  vereine=vereine, sort=sort, fverein=fverein, friege=friege)
+                  vereine=vereine, import_vereine=import_vereine,
+                  sort=sort, fverein=fverein, friege=friege)
 
 
 def _next_free_startnr(db: Session, wid: int) -> int:
@@ -147,6 +153,116 @@ def add(request: Request, wid: int,
     return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
 
 
+@router.post("/{wid}/add-bulk")
+async def add_bulk(request: Request, wid: int,
+                   db: Session = Depends(get_db),
+                   user=Depends(require_user(("admin", "tisch")))):
+    """Meldet mehrere (per Checkbox gewaehlte) Personen auf einmal an —
+    z.B. nach Vereins-Filterung. Startnummern werden automatisch vergeben."""
+    wk = db.get(Wettkampf, wid)
+    if not wk:
+        return RedirectResponse("/tage", status_code=303)
+    form = await request.form()
+    pids = [int(p) for p in form.getlist("pids") if str(p).isdigit()]
+    if not pids:
+        flash(request, "error", "Keine Personen ausgewaehlt.")
+        return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+    schon = {
+        pid for (pid,) in db.query(PersonenHasWettkampf.Personen_id)
+        .filter_by(Wettkampf_id=wid).all()
+    }
+    added = 0
+    for pid in pids:
+        if pid in schon:
+            continue
+        db.add(PersonenHasWettkampf(
+            Personen_id=pid, Wettkampf_id=wid,
+            Startnummer=_next_free_startnr(db, wid),
+            Start_Status="Gemeldet",
+        ))
+        try:
+            db.commit()
+            added += 1
+        except IntegrityError:
+            db.rollback()
+    flash(request, "success", f"{added} Person(en) zum Wettkampf hinzugefuegt.")
+    return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+
+
+@router.post("/{wid}/move")
+def move(request: Request, wid: int,
+         Personen_id: int = Form(...), direction: str = Form(...),
+         db: Session = Depends(get_db),
+         user=Depends(require_user(("admin", "tisch")))):
+    """Verschiebt einen Starter in der Startnummern-Reihenfolge um eine
+    Position (tauscht die Startnummer mit dem Nachbarn)."""
+    ordered = (
+        db.query(PersonenHasWettkampf)
+        .filter_by(Wettkampf_id=wid)
+        .filter(PersonenHasWettkampf.Startnummer.isnot(None))
+        .order_by(PersonenHasWettkampf.Startnummer)
+        .all()
+    )
+    idx = next((i for i, a in enumerate(ordered) if a.Personen_id == Personen_id), None)
+    if idx is None:
+        return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+    swap = idx - 1 if direction == "up" else idx + 1
+    if 0 <= swap < len(ordered):
+        a, b = ordered[idx], ordered[swap]
+        na, nb = a.Startnummer, b.Startnummer
+        # Zweiphasig, damit der UNIQUE-Index (Wettkampf, Startnummer) nicht bricht
+        a.Startnummer = None
+        db.flush()
+        b.Startnummer = na
+        db.flush()
+        a.Startnummer = nb
+        db.commit()
+    return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+
+
+@router.post("/{wid}/renumber")
+async def renumber(request: Request, wid: int,
+                   db: Session = Depends(get_db),
+                   user=Depends(require_user(("admin", "tisch")))):
+    """Vergibt den ausgewaehlten Personen fortlaufende Startnummern ab einem
+    Startwert — in der Reihenfolge, in der sie in der Liste stehen. So laesst
+    sich die Startreihenfolge einer Auswahl schnell festlegen."""
+    wk = db.get(Wettkampf, wid)
+    if not wk:
+        return RedirectResponse("/tage", status_code=303)
+    form = await request.form()
+    pids = [int(p) for p in form.getlist("pids") if str(p).isdigit()]
+    try:
+        start_at = max(1, int(str(form.get("start_at") or "1").strip() or "1"))
+    except ValueError:
+        start_at = 1
+    if not pids:
+        flash(request, "error", "Keine Personen ausgewaehlt.")
+        return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+    sel = [a for a in (db.get(PersonenHasWettkampf, (pid, wid)) for pid in pids) if a]
+    # Ausgewaehlte erst freiraeumen, dann fortlaufend belegen (freie Nummern
+    # suchen, damit nicht ausgewaehlte Starter nicht ueberschrieben werden).
+    for a in sel:
+        a.Startnummer = None
+    db.flush()
+    used = {
+        n for (n,) in db.query(PersonenHasWettkampf.Startnummer)
+        .filter_by(Wettkampf_id=wid)
+        .filter(PersonenHasWettkampf.Startnummer.isnot(None)).all()
+    }
+    n = start_at
+    for a in sel:
+        while n in used:
+            n += 1
+        a.Startnummer = n
+        used.add(n)
+        n += 1
+    db.commit()
+    flash(request, "success",
+          f"{len(sel)} Startnummern ab {start_at} in Listenreihenfolge vergeben.")
+    return RedirectResponse(f"/anmeldung/{wid}", status_code=303)
+
+
 @router.post("/{wid}/riege-bulk")
 async def riege_bulk(request: Request, wid: int,
                      db: Session = Depends(get_db),
@@ -170,8 +286,8 @@ async def riege_bulk(request: Request, wid: int,
     riege = None
     if riege_raw:
         riege = db.get(Riege, int(riege_raw))
-        if not riege or riege.Wettkampf_id != wid:
-            flash(request, "error", "Riege gehoert nicht zu diesem Wettkampf.")
+        if not riege or riege.Wettkampf_Tag_id != wk.Wettkampf_Tag_id:
+            flash(request, "error", "Riege gehoert nicht zu diesem Wettkampftag.")
             return RedirectResponse(back, status_code=303)
 
     n = 0

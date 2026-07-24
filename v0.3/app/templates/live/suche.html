@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Personensuche — Live{% endblock %}
+{% block content %}
+<a href="/live" class="text-sm text-brand-600 hover:underline">← Live-Ansicht</a>
+<h1 class="text-2xl font-bold my-4">🔎 Personensuche (alle Wettkaempfe)</h1>
+
+<form method="get" action="/live/suche" class="card mb-4 flex gap-2">
+  <input class="input flex-1" name="q" value="{{ q }}" placeholder="Vor- oder Nachname…" autofocus>
+  <button class="btn btn-primary">suchen</button>
+</form>
+
+{% if q and q|length < 2 %}
+  <p class="card text-slate-500 text-center">Bitte mindestens 2 Zeichen eingeben.</p>
+{% elif q %}
+  {% if ergebnisse %}
+  <div class="space-y-3">
+    {% for e in ergebnisse %}
+    <div class="card">
+      <div class="flex items-center gap-2 flex-wrap mb-2">
+        <a href="/live/athlet/{{ e.person.idPersonen }}" class="font-semibold text-brand-700 hover:underline">{{ e.person.Nachname }}, {{ e.person.Vorname }}</a>
+        {% if e.person.verein %}<span class="badge">{{ e.person.verein.Kuerzel }}</span>{% endif %}
+        {% if e.person.Geburtsdatum %}<span class="text-xs text-slate-500">Jg. {{ e.person.Geburtsdatum.year }}</span>{% endif %}
+      </div>
+      {% if e.teilnahmen %}
+      <div class="overflow-x-auto">
+      <table class="table">
+        <thead><tr><th>Wettkampftag</th><th>Wettkampf</th><th>Startnr.</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for t in e.teilnahmen %}
+          <tr>
+            <td>{{ t.wettkampf.tag.Name }} <span class="text-xs text-slate-400">({{ t.wettkampf.tag.Wettkampf_Datum }})</span></td>
+            <td>{{ t.wettkampf.Wettkampf_Nr }} · {{ t.wettkampf.Name }}</td>
+            <td>{{ t.Startnummer if t.Startnummer is not none else '—' }}</td>
+            <td><span class="badge">{{ t.Start_Status }}</span></td>
+            <td class="text-right whitespace-nowrap">
+              <a class="btn btn-ghost" href="/live/wettkampf/{{ t.Wettkampf_id }}">Rangliste</a>
+              <a class="btn btn-ghost" href="/live/wettkampf/{{ t.Wettkampf_id }}/athlet/{{ e.person.idPersonen }}">Wertungen</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <p class="text-sm text-slate-400 italic">In keinem Wettkampf gemeldet.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="card text-center text-slate-500">Keine Person passt zu „<strong>{{ q }}</strong>“.</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

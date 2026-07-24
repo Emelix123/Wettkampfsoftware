@@ -237,9 +237,18 @@ def add_riege(request: Request, wid: int,
               Bezeichnung: str = Form(...), Start_Zeit: str = Form(""),
               db: Session = Depends(get_db),
               user=Depends(require_user("admin"))):
-    db.add(Riege(Wettkampf_id=wid, Bezeichnung=Bezeichnung.strip(),
+    # Riegen gelten wettkampfuebergreifend: sie haengen am Wettkampftag.
+    wk = db.get(Wettkampf, wid)
+    if not wk:
+        return RedirectResponse("/tage", status_code=303)
+    db.add(Riege(Wettkampf_Tag_id=wk.Wettkampf_Tag_id, Bezeichnung=Bezeichnung.strip(),
                  Start_Zeit=time.fromisoformat(Start_Zeit) if Start_Zeit else None))
-    db.commit()
+    try:
+        db.commit()
+        flash(request, "success", f"Riege '{Bezeichnung.strip()}' angelegt (gilt fuer den ganzen Wettkampftag).")
+    except IntegrityError:
+        db.rollback()
+        flash(request, "error", f"Riege '{Bezeichnung.strip()}' gibt es an diesem Wettkampftag bereits.")
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 
@@ -247,9 +256,11 @@ def add_riege(request: Request, wid: int,
 def del_riege(request: Request, wid: int, rid: int,
               db: Session = Depends(get_db),
               user=Depends(require_user("admin"))):
+    wk = db.get(Wettkampf, wid)
     obj = db.get(Riege, rid)
-    if obj and obj.Wettkampf_id == wid:
+    if wk and obj and obj.Wettkampf_Tag_id == wk.Wettkampf_Tag_id:
         db.delete(obj); db.commit()
+        flash(request, "success", f"Riege '{obj.Bezeichnung}' geloescht.")
     return RedirectResponse(f"/wettkampf/{wid}", status_code=303)
 
 

@@ -12,7 +12,7 @@
 {% from 'live/_riegen_macro.html' import render_riegen %}
 
 {% for w in tag.wettkaempfe %}
-  {% if w.riegen %}
+  {% if fortschritt_per_wk.get(w.idWettkampf) %}
   <section class="card mb-4">
     <h2 class="font-semibold mb-3">{{ w.Wettkampf_Nr }} · {{ w.Name }}
       <span class="text-xs text-slate-500 font-normal">— {{ w.altersklasse.Kuerzel }}</span>

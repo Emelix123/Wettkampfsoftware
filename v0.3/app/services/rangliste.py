@@ -48,11 +48,14 @@ def riegen_fortschritt(db: Session, wettkampf_id: int) -> dict:
     for r in rows:
         pro_geraet.setdefault(r["Riege_id"], {})[r["Geraete_id"]] = r["personen_mit_versuch"]
 
+    # Riegen gelten wettkampfuebergreifend — hier nur die anzeigen, die in
+    # diesem Wettkampf tatsaechlich Mitglieder haben.
     from models import Riege
+    riege_ids = set(mitglieder) | set(pro_geraet)
     riegen = (
-        db.query(Riege).filter_by(Wettkampf_id=wettkampf_id)
+        db.query(Riege).filter(Riege.idRiege.in_(riege_ids))
         .order_by(Riege.Start_Zeit, Riege.Bezeichnung).all()
-    )
+    ) if riege_ids else []
     out = {}
     for r in riegen:
         out[r.idRiege] = {
